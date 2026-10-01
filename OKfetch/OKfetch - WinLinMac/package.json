@@ -1,0 +1,52 @@
+{
+  "name": "okfetch",
+  "productName": "OKfetch",
+  "version": "1.0.0",
+  "description": "OKfetch – peer-to-peer messages and files, encrypted or plain",
+  "author": "OpiKula",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "dev:two": "node scripts/dev-two.mjs",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
+    "smoke": "electron-vite build && node tests/smoke/run-smoke.mjs",
+    "dist": "electron-vite build && electron-builder",
+    "dist:win": "electron-vite build && electron-builder --win",
+    "dist:linux": "electron-vite build && electron-builder --linux",
+    "dist:mac": "electron-vite build && electron-builder --mac"
+  },
+  "dependencies": {
+    "b4a": "^1.6.7",
+    "dompurify": "^3.2.6",
+    "hyperswarm": "^4.11.7",
+    "sodium-universal": "^5.0.1",
+    "z32": "^1.1.0"
+  },
+  "devDependencies": {
+    "@tiptap/core": "^3.31.4",
+    "@tiptap/pm": "^3.31.4",
+    "@tiptap/react": "^3.31.4",
+    "@tiptap/starter-kit": "^3.31.4",
+    "@types/node": "^26.6.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "hash-wasm": "^4.12.0",
+    "hyperdht": "^6.20.5",
+    "jsdom": "^30.1.1",
+    "playwright-core": "^1.63.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^7.3.6",
+    "vitest": "^5.0.3"
+  }
+}

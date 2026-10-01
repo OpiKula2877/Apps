@@ -1,0 +1,33 @@
+appId: cz.opikula.okfetch
+productName: OKfetch
+copyright: OpiKula
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**
+  - resources/**
+  - package.json
+  - '!**/*.map'
+asarUnpack:
+  - resources/**
+  - '**/node_modules/sodium-native/**'
+  - '**/node_modules/udx-native/**'
+  - '**/node_modules/sodium-universal/**'
+win:
+  target: nsis
+  icon: build/icon-1024.png
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: OKfetch-Setup-${version}.${ext}
+linux:
+  target: AppImage
+  icon: build/icon-1024.png
+  category: Network
+  artifactName: OKfetch-${version}.${ext}
+mac:
+  target: dmg
+  icon: build/icon-1024.png
+  category: public.app-category.social-networking
+  artifactName: OKfetch-${version}.${ext}
