@@ -1,0 +1,60 @@
+{
+ "key": " Fixture .Key-1 ",
+ "decoy_key": "Decoy.Key",
+ "wrong_key": "nope",
+ "real": {
+  "format": 1,
+  "profile": {
+   "username": "Opi Kula"
+  },
+  "documents": [
+   {
+    "id": "doc1",
+    "title": "Plán projektu",
+    "html": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\n</style></head><body>\n<h1 style=\" margin-top:18px; margin-bottom:10px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:xx-large; font-weight:700;\">Hlavní cíle</span></h1>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:medium; font-weight:700;\">Tučně</span><span style=\" font-size:medium;\"> a </span><span style=\" font-size:medium; font-style:italic;\">kurzívou</span></p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:2; text-indent:0px;\"><span style=\" font-size:medium;\">Odsazený odstavec</span></p></body></html>",
+    "created": 1700000000.5,
+    "modified": 1700000100.25
+   }
+  ],
+  "passwords": [
+   {
+    "id": "pw1",
+    "created": 1700000200.0,
+    "modified": 1700000300.0,
+    "fields": [
+     {
+      "id": "e8313626b1834b509544b38039711614",
+      "kind": "title",
+      "name": null,
+      "value": "github.com"
+     },
+     {
+      "id": "f5340682b7844eab99e6446ea33cc6ee",
+      "kind": "username",
+      "name": null,
+      "value": "opikula"
+     },
+     {
+      "id": "1397cb6bbc724d95a9a816d14fa28f9d",
+      "kind": "password",
+      "name": null,
+      "value": "Kx9!p2-Lm#qR7_zT"
+     },
+     {
+      "id": "d429630780994b0b861e28665dca89ed",
+      "kind": "custom",
+      "name": "PIN",
+      "value": "4821"
+     }
+    ]
+   }
+  ],
+  "decoy_set": true
+ },
+ "decoy_username": "Opi Kula",
+ "decoy_documents": [
+  "Nákupní seznam",
+  "Kontakty – řemeslníci",
+  "Knihy"
+ ]
+}

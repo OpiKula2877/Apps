@@ -1,0 +1,30 @@
+appId: cz.opikula.okpass
+productName: OKpass
+copyright: OpiKula
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**
+  - resources/**
+  - package.json
+  - '!**/*.map'
+asarUnpack:
+  - resources/**
+win:
+  target: nsis
+  icon: build/icon-1024.png
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: OKpass-Setup-${version}.${ext}
+linux:
+  target: AppImage
+  icon: build/icon-1024.png
+  category: Utility
+  artifactName: OKpass-${version}.${ext}
+mac:
+  target: dmg
+  icon: build/icon-1024.png
+  category: public.app-category.productivity
+  artifactName: OKpass-${version}.${ext}

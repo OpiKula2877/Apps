@@ -1,0 +1,9 @@
+node_modules/
+out/
+dist/
+dev-drive/
+*.log
+dist-mobile/
+android/keystore/okpass.jks
+android/keystore.properties
+*.tsbuildinfo

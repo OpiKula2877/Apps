@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "types": [
+      "node"
+    ],
+    "strict": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "composite": true
+  },
+  "include": [
+    "capacitor.config.ts",
+    "electron.vite.config.ts",
+    "src/core/**/*",
+    "src/main/**/*",
+    "src/preload/**/*",
+    "src/renderer/src/i18n/strings.ts",
+    "src/shared/**/*",
+    "tests/**/*.ts",
+    "vite.mobile.config.ts",
+    "vitest.config.ts"
+  ],
+  "exclude": [
+    "tests/editor.test.ts"
+  ]
+}
