@@ -23,7 +23,6 @@ OKpass je šifrovaný správce poznámek a hesel. Data jsou uložená na vašem 
   - Klamný trezor: druhý klíč otevře jiný obsah.
   - Nesprávný klíč nevyhodí chybu, ale ukáže věrohodná falešná data.
 - **Android**:
-  - Odemknutí otiskem prstu.
   - Zamknutí při odchodu z aplikace.
   - Zákaz snímků obrazovky.
 - **Vzhled**:
