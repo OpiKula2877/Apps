@@ -70,7 +70,8 @@ Desktop i telefon musí mít OAuth klienta ve **stejném** Google Cloud projektu
 4. **Desktop klient**:
    - Vytvořte Clients, Create client, Desktop app a stáhněte JSON.
    - V aplikaci klikněte na „Vybrat client_secret.json…“.
-5. **Android klient**: vytvořte Clients, Create client, Android s těmito hodnotami:
+5. **Android klient**:
+   - Vytvořte Clients, Create client, Android s těmito hodnotami:
    - Package name: `cz.opikula.okpass`
    - SHA-1: `33:4C:49:B0:90:8B:B0:89:93:AA:55:74:2A:1F:0B:7A:78:9E:77:44` (otisk podpisu přiloženého APK)
 
