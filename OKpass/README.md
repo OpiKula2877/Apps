@@ -25,6 +25,7 @@ OKpass je šifrovaný správce poznámek a hesel. Data jsou uložená na vašem 
 - **Android**:
   - Zamknutí při odchodu z aplikace.
   - Zákaz snímků obrazovky.
+  - Odemknutí pomocí otisku prstu.
 - **Vzhled**:
   - Témata Světlý, Tmavý, OpiKula style a Vlastní (u Vlastního jde nastavit každá barva).
   - Čeština a angličtina.
