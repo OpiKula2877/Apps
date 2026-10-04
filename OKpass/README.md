@@ -131,6 +131,13 @@ Trezor na Google Disku zůstane. Pokud ho nechcete, smažte složku `OKpass` na 
 - **Otisk prstu (Android)**: odvozené tajemství je zašifrované klíčem v Android Keystore, který jde použít jen po ověření otiskem. Přidání nového otisku v telefonu uložené tajemství zneplatní.
 - **Omezení**: kdo má soubor trezoru, může zkoušet klíče offline. Argon2id to výrazně zpomalí, ale slabý klíč neochrání. Používejte dlouhý, náhodný klíč.
 
+## Omezení
+
+- Zapomenutý klíč nejde obnovit. Nikde se neukládá a bez něj je trezor jen šum.
+- Aplikace potřebuje Google účet a vlastního OAuth klienta.
+- Instalátory pro počítač nejsou podepsané, takže je systém napoprvé upozorní.
+- Android potřebuje služby Google Play (přihlášení ke Google).
+
 ## Vývoj
 
 ```bash
