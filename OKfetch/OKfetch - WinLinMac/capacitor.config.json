@@ -1,0 +1,9 @@
+{
+  "appId": "cz.opikula.okfetch",
+  "appName": "OKfetch",
+  "webDir": "dist-mobile",
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  }
+}

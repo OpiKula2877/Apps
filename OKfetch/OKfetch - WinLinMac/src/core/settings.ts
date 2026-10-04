@@ -1,7 +1,13 @@
 // Local, non-secret settings: defaults and validation (same keys as OKpass plus the OKfetch ones).
 import type { Settings } from '../shared/ipc'
 
-export const THEMES = ['light', 'dark', 'opikula', 'custom'] as const
+export const THEMES = ['light', 'dark', 'opikula', 'custom', 'system'] as const
+export const LOCK_TIMES = [0, 1, 5, 15] as const
+
+/** Public Nostr relays that accept the fallback's ephemeral events (checked 2026-10-03). */
+export const DEFAULT_RELAYS = ['wss://nos.lol', 'wss://relay.primal.net', 'wss://nostr.mom', 'wss://relay.damus.io']
+const RELAY_URL = /^wss?:\/\/[^\s/$.?#][^\s]*$/i
+const MAX_RELAYS = 8
 
 export function defaultSettings(): Settings {
   return {
@@ -14,8 +20,22 @@ export function defaultSettings(): Settings {
     storage_path: null,
     notifications: true,
     close_to_tray: false,
-    autostart: false
+    autostart: false,
+    app_lock: false,
+    lock_after: 1,
+    background_service: true,
+    block_screenshots: true,
+    hide_notification_content: false,
+    relay_fallback: true,
+    relay_urls: [...DEFAULT_RELAYS],
+    relay_only: false
   }
+}
+
+function relayUrls(value: unknown): string[] {
+  if (!Array.isArray(value)) return [...DEFAULT_RELAYS]
+  const urls = [...new Set(value.filter((u): u is string => typeof u === 'string').map((u) => u.trim()).filter((u) => RELAY_URL.test(u)))]
+  return urls.length ? urls.slice(0, MAX_RELAYS) : [...DEFAULT_RELAYS]
 }
 
 const clamp = (value: unknown, min: number, max: number, fallback: number): number => {
@@ -50,6 +70,14 @@ export function sanitizeSettings(raw: unknown): Settings {
     storage_path: typeof r.storage_path === 'string' && r.storage_path.trim() ? r.storage_path : null,
     notifications: r.notifications === undefined ? d.notifications : Boolean(r.notifications),
     close_to_tray: Boolean(r.close_to_tray),
-    autostart: Boolean(r.autostart)
+    autostart: Boolean(r.autostart),
+    app_lock: Boolean(r.app_lock),
+    lock_after: LOCK_TIMES.includes(r.lock_after as (typeof LOCK_TIMES)[number]) ? (r.lock_after as number) : d.lock_after,
+    background_service: r.background_service === undefined ? d.background_service : Boolean(r.background_service),
+    block_screenshots: r.block_screenshots === undefined ? d.block_screenshots : Boolean(r.block_screenshots),
+    hide_notification_content: Boolean(r.hide_notification_content),
+    relay_fallback: r.relay_fallback === undefined ? d.relay_fallback : Boolean(r.relay_fallback),
+    relay_urls: relayUrls(r.relay_urls),
+    relay_only: Boolean(r.relay_only)
   }
 }

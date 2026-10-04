@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only the storage folder (received files, outgoing copies, photos) and the cache are shared with other apps, file by file. -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <files-path name="okfetch" path="okfetch/" />
+    <cache-path name="cache" path="." />
+</paths>

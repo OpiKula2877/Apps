@@ -1,11 +1,12 @@
 // Contract between the main process and the renderer.
 import type { PasswordError } from './keys'
 import type {
-  AddContactResult, BlockedView, ContactView, GroupView, MessageView, NetStatus, OutgoingRequestView, ProfileView, RequestView, SendResult, TransferProgress
+  AddContactResult, BlockedView, ContactView, GroupView, MessageView, NetDiagnostics, NetStatus, OutgoingRequestView, ProbeResult, ProfileView, RequestView, SendResult, TransferProgress
 } from './model'
 
 export interface Settings {
-  theme: 'light' | 'dark' | 'opikula' | 'custom'
+  /** 'system' follows the light/dark mode of the phone (Android only). */
+  theme: 'light' | 'dark' | 'opikula' | 'custom' | 'system'
   custom_colors: Record<string, string>
   custom_flags: Record<string, boolean>
   language: 'cs' | 'en'
@@ -16,9 +17,24 @@ export interface Settings {
   notifications: boolean
   close_to_tray: boolean
   autostart: boolean
+  // Android only (the desktop keeps the defaults and never shows them).
+  /** Ask for the fingerprint (or the device PIN) on start and after a while in the background. */
+  app_lock: boolean
+  /** Minutes in the background before the lock applies again: 0, 1, 5 or 15. */
+  lock_after: number
+  /** Keep the core running with a permanent notification, so messages arrive while the app is closed. */
+  background_service: boolean
+  block_screenshots: boolean
+  hide_notification_content: boolean
+  /** When two devices cannot connect directly, go through public Nostr relays (end-to-end encrypted). */
+  relay_fallback: boolean
+  /** Relays for the fallback (wss://…); both sides need at least one in common. */
+  relay_urls: string[]
+  /** Diagnostics only (not in the UI): skip direct connections. */
+  relay_only: boolean
 }
 
-export type PlatformName = 'windows' | 'linux' | 'macos'
+export type PlatformName = 'windows' | 'linux' | 'macos' | 'android'
 
 /** Events pushed from the core (and the main process) to the UI. */
 export type CoreEvent =
@@ -34,13 +50,22 @@ export type CoreEvent =
   | { type: 'incoming'; chatId: string; title: string; text: string }
   | { type: 'request'; title: string }
 
-export type UiEvent = CoreEvent | { type: 'open-chat'; chatId: string } | { type: 'app'; status: AppStatus }
+export type UiEvent =
+  | CoreEvent
+  | { type: 'open-chat'; chatId: string }
+  | { type: 'app'; status: AppStatus }
+  /** Android: the settings changed (the Java host applies the lock, screenshots and the background service). */
+  | { type: 'settings'; settings: Settings }
 
 export type AppStatus =
   | { phase: 'starting' }
   | { phase: 'ready' }
   /** The storage folder cannot be written: the user has to choose another one. */
   | { phase: 'storage'; path: string; error: string }
+  /** Android: the data key in Keystore is gone, so the stored keys cannot be opened (restore or start again). */
+  | { phase: 'keys' }
+
+export type BackupResult = { ok: true } | { ok: false; error: string }
 
 export interface Requests {
   incoming: RequestView[]
@@ -74,6 +99,10 @@ export interface OkfetchApi {
   setAvatar(png: Uint8Array | null): Promise<boolean>
   setPassword(password: string | null): Promise<PasswordError | null>
   getNetStatus(): Promise<NetStatus>
+  /** Network diagnostics: public address, NAT type, local addresses. */
+  getNetDiagnostics(): Promise<NetDiagnostics>
+  /** Test connection to a contact or request target (DHT error code when it fails). */
+  probePeer(pub: string): Promise<ProbeResult>
   getSecurityInfo(): Promise<SecurityInfo>
 
   // contacts
@@ -106,18 +135,31 @@ export interface OkfetchApi {
   sendTyping(chatId: string): void
   markRead(chatId: string): Promise<void>
   deleteMessages(chatId: string, ids: string[], scope: 'me' | 'both'): Promise<{ deleted: number; skipped: number }>
-  sendFile(chatId: string): Promise<SendFileResult>
+  /** `camera` takes a photo (Android); the desktop always opens the file dialog. */
+  sendFile(chatId: string, source?: 'file' | 'camera'): Promise<SendFileResult>
+  /** Android: send a file the host already copied into the app (shared from another app). */
+  sendPrepared(chatId: string, path: string): Promise<SendFileResult>
   acceptFile(chatId: string, id: string): Promise<boolean>
   rejectFile(chatId: string, id: string, feedback?: string): Promise<boolean>
   cancelFile(chatId: string, id: string): Promise<boolean>
   openFile(chatId: string, id: string): Promise<void>
   showFile(chatId: string, id: string): Promise<void>
+  /** Android: copy a received file to Downloads. */
+  saveFile(chatId: string, id: string): Promise<boolean>
+  /** Android: offer a received file to other apps. */
+  shareFile(chatId: string, id: string): Promise<void>
   openExternal(url: string): Promise<void>
   copyText(text: string): Promise<void>
 
   // settings
   getSettings(): Promise<Settings>
   updateSettings(patch: Partial<Settings>): Promise<Settings>
+
+  // backup (Android; the desktop answers 'unsupported')
+  createBackup(password: string, withFiles: boolean): Promise<BackupResult>
+  restoreBackup(password: string): Promise<BackupResult>
+  /** Delete all data and start with a new identity (after the Keystore key was lost). */
+  resetData(): Promise<void>
 
   windowMinimize(): void
   windowToggleMaximize(): void
@@ -128,12 +170,12 @@ export interface OkfetchApi {
 /** Methods the renderer calls with `invoke` (the rest of OkfetchApi is event wiring and window buttons). */
 export const API_METHODS = [
   'getStatus', 'pickFolder', 'useStoragePath',
-  'getProfile', 'setUsername', 'setAvatar', 'setPassword', 'getNetStatus', 'getSecurityInfo',
+  'getProfile', 'setUsername', 'setAvatar', 'setPassword', 'getNetStatus', 'getNetDiagnostics', 'probePeer', 'getSecurityInfo',
   'listContacts', 'listRequests', 'listBlocked', 'addContact', 'cancelRequest', 'acceptRequest', 'rejectRequest', 'blockPeer', 'unblockPeer',
   'renameContact', 'setContactIcon', 'verifyContact', 'getFingerprint', 'removeContact',
   'listGroups', 'createGroup', 'updateGroup', 'leaveGroup', 'acceptInvite', 'declineInvite',
-  'getMessages', 'sendMessage', 'sendTyping', 'markRead', 'deleteMessages', 'sendFile', 'acceptFile', 'rejectFile', 'cancelFile', 'openFile', 'showFile',
-  'openExternal', 'copyText', 'getSettings', 'updateSettings'
+  'getMessages', 'sendMessage', 'sendTyping', 'markRead', 'deleteMessages', 'sendFile', 'sendPrepared', 'acceptFile', 'rejectFile', 'cancelFile', 'openFile', 'showFile',
+  'saveFile', 'shareFile', 'openExternal', 'copyText', 'getSettings', 'updateSettings', 'createBackup', 'restoreBackup', 'resetData'
 ] as const
 
 export type ApiMethod = (typeof API_METHODS)[number]

@@ -53,7 +53,11 @@ export const DEFAULT_FLAGS: Flags = {
 
 const HEX = /^#[0-9a-fA-F]{6}$/
 
-export function resolveColors(settings: Pick<Settings, 'theme' | 'custom_colors'>): Palette {
+/** The dark mode of the system (phone); without a window (main process) it counts as dark. */
+export const systemPrefersDark = (): boolean => globalThis.matchMedia?.('(prefers-color-scheme: dark)').matches ?? true
+
+export function resolveColors(settings: Pick<Settings, 'theme' | 'custom_colors'>, systemDark: boolean = systemPrefersDark()): Palette {
+  if (settings.theme === 'system') return { ...PRESETS[systemDark ? 'dark' : 'light'] }
   if (settings.theme !== 'custom') return { ...PRESETS[settings.theme] }
   const colors = { ...PRESETS.opikula }
   for (const role of COLOR_ROLES) {

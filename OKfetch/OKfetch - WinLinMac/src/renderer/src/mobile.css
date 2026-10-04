@@ -1,0 +1,443 @@
+/* Android build. .android = any Android screen, .phone = phone-sized (list and chat full screen, dialogs full screen). */
+
+/* --- touch: holding a contact or message opens its menu / selection instead of selecting text --- */
+.window.android .contact,
+.window.android .kind-row,
+.window.android .group-row,
+.window.android .bubble,
+.window.android .section-item {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.window.android .context-menu button {
+  padding: 12px 22px;
+  min-height: 44px;
+}
+
+/* --- shared pieces (also seen on the desktop: the QR code in Profile) --- */
+.qr-box {
+  align-self: flex-start;
+  background: #ffffff;
+  padding: 8px;
+  border-radius: var(--radius);
+  line-height: 0;
+}
+
+.qr-box svg {
+  width: 220px;
+  height: 220px;
+}
+
+.ellipsis {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.net-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 5px;
+  margin-left: 8px;
+  background: var(--offline);
+}
+
+.net-dot.net-online {
+  background: var(--online);
+}
+
+.net-dot.net-connecting {
+  background: var(--medium);
+}
+
+/* --- phone header --- */
+.window.phone .phone-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+
+.window.phone .phone-brand {
+  display: flex;
+  align-items: center;
+  padding-left: 6px;
+}
+
+.window.phone .phone-brand .logo {
+  font-size: calc(var(--font-size) + 7pt);
+  text-align: left;
+}
+
+.window.phone .phone-title {
+  font-weight: bold;
+  font-size: calc(var(--font-size) + 2pt);
+}
+
+.window.phone .icon-button {
+  min-width: 42px;
+  min-height: 42px;
+}
+
+/* --- list ↔ chat --- */
+.window.phone .split {
+  padding: 0;
+  gap: 0;
+}
+
+.window.phone .split.phone-list .main-panel,
+.window.phone .split.phone-chat .side {
+  display: none;
+}
+
+.window.phone .side {
+  width: 100%;
+  padding: 10px 12px 0;
+}
+
+.window.phone .side > .row {
+  flex-wrap: wrap;
+}
+
+.window.phone .side button,
+.window.phone .kind-row {
+  min-height: 42px;
+}
+
+.window.phone .side-scroll {
+  padding-bottom: 76px;
+}
+
+.window.phone .chat-toolbar {
+  gap: 6px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.window.phone .chat-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.window.phone .chat-messages {
+  border: none;
+  border-radius: 0;
+  padding: 8px 8px;
+}
+
+.window.phone .chat-search {
+  padding: 4px 8px 6px;
+}
+
+.window.phone .bubble {
+  max-width: 85%;
+}
+
+.window.phone .typing-line {
+  padding: 0 10px;
+}
+
+/* "Selected: n" on its own line, the three buttons share the width below it. */
+.window.phone .selection-bar {
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 8px 8px;
+}
+
+.window.phone .selection-bar > span {
+  flex-basis: 100%;
+}
+
+.window.phone .selection-bar button {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.window.phone .composer {
+  padding: 6px 8px 8px;
+  gap: 6px;
+}
+
+.window.phone .composer-editor .editor-area {
+  max-height: 140px;
+  min-height: 44px;
+}
+
+.window.phone .composer-editor .editor-content {
+  min-height: 40px;
+}
+
+.window.phone .editor-toolbar {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scrollbar-width: none;
+}
+
+.window.phone .editor-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.window.phone .editor-toolbar .tool {
+  flex: none;
+  min-height: 38px;
+}
+
+.format-toggle {
+  font-weight: bold;
+}
+
+.send-button {
+  min-width: 52px;
+  min-height: 42px;
+}
+
+.attach-wrap {
+  position: relative;
+}
+
+/* bottom sheet (attach menu) */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 46;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px 18px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.sheet button {
+  justify-content: flex-start;
+  gap: 14px;
+  min-height: 50px;
+  border: none;
+  background: transparent;
+}
+
+/* --- dialogs fill the screen --- */
+.window.phone .modal-backdrop {
+  padding: 0;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.window.phone .modal {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100vw;
+  max-height: 100%;
+  border: none;
+  border-radius: 0;
+}
+
+.window.phone .modal-footer {
+  flex-wrap: wrap;
+  padding: 10px 16px 14px;
+}
+
+.window.phone .modal-footer button {
+  min-height: 44px;
+}
+
+.window.phone .modal-body {
+  padding: 8px 16px;
+}
+
+/* help: text wraps inside the screen */
+.window.phone .help {
+  overflow-wrap: anywhere;
+}
+
+.window.phone .help code {
+  white-space: normal;
+  word-break: break-all;
+}
+
+.window.phone .help table {
+  width: 100%;
+}
+
+.window.phone .help ul,
+.window.phone .help ol {
+  padding-left: 20px;
+}
+
+/* --- toast and "?" float above the content --- */
+.window.phone .footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  padding: 0;
+}
+
+.window.phone .footer .toast:not(:empty) {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 78px;
+  z-index: 60;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.window.phone .help-button {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 40;
+  width: 46px;
+  height: 46px;
+  border-radius: 23px;
+  pointer-events: auto;
+}
+
+/* A full-screen chat needs all the room: no app header, no "?" over the Send button. Settings sections hide "?" too. */
+body[data-chat-open='true'] .window.phone .help-button,
+body[data-chat-open='true'] .window.phone .phone-header,
+.window.phone:has(.section-back) .help-button {
+  display: none;
+}
+
+/* --- settings: list of sections, then one section --- */
+.window.phone .phone-settings {
+  padding: 0;
+  max-width: none;
+}
+
+.section-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.section-item {
+  justify-content: flex-start;
+  gap: 14px;
+  min-height: 54px;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.section-back {
+  justify-content: flex-start;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  font-weight: bold;
+  padding: 10px 12px;
+  flex: none;
+}
+
+.window.phone .phone-settings .settings-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 12px 84px;
+}
+
+.window.phone .form-row,
+.window.phone .settings-panel .row {
+  flex-wrap: wrap;
+}
+
+.window.phone .color-grid {
+  grid-template-columns: 1fr;
+}
+
+.window.phone .settings-panel button,
+.window.phone .settings-panel select,
+.window.phone .settings-panel input:not([type='checkbox']):not([type='radio']) {
+  min-height: 42px;
+}
+
+.window.phone .check {
+  min-height: 36px;
+}
+
+/* --- add contact, share --- */
+.scan-button {
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+}
+
+.share-what {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.share-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.share-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.share-group {
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 48px;
+}
+
+.diag-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+  overflow-wrap: anywhere;
+}
+
+.relay-list {
+  width: 100%;
+  resize: vertical;
+}
+
+.diag-peer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.keys-page {
+  padding: 16px 12px;
+}

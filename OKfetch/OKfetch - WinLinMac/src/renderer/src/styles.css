@@ -447,6 +447,8 @@ p {
 .split {
   flex: 1;
   min-width: 0;
+  /* Without it a long chat stretches the page and pushes the composer off the screen. */
+  min-height: 0;
   display: flex;
   gap: 8px;
   padding: 12px 12px 4px;

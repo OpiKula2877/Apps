@@ -78,7 +78,7 @@ export function ContactList(props: Props) {
                 {contact.name}
                 {contact.verified && <span className="verified" title={t('contact.verified')}><Icon name="shield" size={13} /></span>}
               </div>
-              <div className="item-sub">{contact.blocked ? t('contact.blocked') : t(contact.online ? 'status.online' : 'status.offline')}</div>
+              <div className="item-sub">{contact.blocked ? t('contact.blocked') : contact.online && contact.via === 'relay' ? t('status.online_relay') : t(contact.online ? 'status.online' : 'status.offline')}</div>
             </div>
           </div>
           {!contact.blocked && (

@@ -22,6 +22,8 @@ export interface ContactView {
   /** Name the contact chose for itself. */
   username: string
   online: boolean
+  /** How we are connected right now: directly, through the relays, or not at all. */
+  via: 'direct' | 'relay' | null
   verified: boolean
   blocked: boolean
   /** `okfetch-file://` URL of the custom icon or the contact's avatar. */
@@ -112,6 +114,32 @@ export interface ProfileView {
 
 export type NetStatus = 'connecting' | 'online' | 'offline'
 
+/** What the network layer knows about this device (Settings → network diagnostics). */
+export interface NetDiagnostics {
+  status: NetStatus
+  /** Public address as the DHT sees it; null until known. Port 0 = the NAT changes ports (randomized). */
+  host: string | null
+  port: number | null
+  /** Others cannot open a connection to us directly (behind NAT or a firewall). */
+  firewalled: boolean
+  /** The NAT uses a new port for every destination: two such sides cannot reach each other. */
+  randomized: boolean
+  /** IPv4 addresses of this device in its local network (used to connect two devices behind one router). */
+  localAddresses: string[]
+  connections: number
+  /** Fallback through public relays: relays in use, connected, peers reached through them. Null = off. */
+  relay: { relays: number; connected: number; links: number } | null
+}
+
+/** A test connection to one peer: ok, already connected ('CONNECTED'), or the DHT error code. */
+export interface ProbeResult {
+  ok: boolean
+  code: string | null
+  ms: number
+  /** For an open connection: direct or through the relays. */
+  via?: 'direct' | 'relay'
+}
+
 export interface TransferProgress {
   chatId: string
   messageId: string
@@ -127,8 +155,17 @@ export type AddContactResult =
 
 export type SendResult = { ok: true; id: string } | { ok: false; reason: 'empty' | 'too_long_offline' | 'no_chat' | 'not_connected' | 'no_file' }
 
-/** URL of a file inside the storage folder (`rel` uses forward slashes). Served by the main process. */
-export const fileUrl = (rel: string): string => `okfetch-file://f/${rel.split('/').map(encodeURIComponent).join('/')}`
+let fileBase = 'okfetch-file://f/'
+
+/** The phone serves the same files from https://localhost/okfetch-file/f/; its core and UI set that once at start. */
+export function setFileUrlBase(base: string): void {
+  fileBase = base
+}
+
+/** URL of a file inside the storage folder (`rel` uses forward slashes). Served by the main process (desktop) or the WebView (phone). */
+export const fileUrl = (rel: string): string => `${fileBase}${rel.split('/').map(encodeURIComponent).join('/')}`
+
+export const PHONE_FILE_BASE = 'https://localhost/okfetch-file/f/'
 
 export function newId(): string {
   return globalThis.crypto.randomUUID().replace(/-/g, '')

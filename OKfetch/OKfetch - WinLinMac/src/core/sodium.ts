@@ -94,6 +94,24 @@ export function argon2id(password: Uint8Array, salt: Uint8Array, iterations: num
   return out
 }
 
+/**
+ * Static Diffie-Hellman between two identities (Ed25519 keys converted to X25519). Both sides get the same secret;
+ * nobody else can. Returns null for a public key that is not a valid curve point.
+ */
+export function sharedSecret(mySecretKey: Uint8Array, theirPublicKey: Uint8Array): Buffer | null {
+  try {
+    const myCurve = Buffer.alloc(sodium.crypto_scalarmult_SCALARBYTES)
+    const theirCurve = Buffer.alloc(sodium.crypto_scalarmult_BYTES)
+    sodium.crypto_sign_ed25519_sk_to_curve25519(myCurve, toBuf(mySecretKey))
+    sodium.crypto_sign_ed25519_pk_to_curve25519(theirCurve, toBuf(theirPublicKey))
+    const out = Buffer.alloc(sodium.crypto_scalarmult_BYTES)
+    sodium.crypto_scalarmult(out, myCurve, theirCurve)
+    return out
+  } catch {
+    return null
+  }
+}
+
 /** Uniform random integer in [0, max) without modulo bias. */
 export function randomInt(max: number): number {
   const limit = 0x100000000 - (0x100000000 % max)

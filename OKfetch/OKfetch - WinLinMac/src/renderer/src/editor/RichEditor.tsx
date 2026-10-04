@@ -28,17 +28,21 @@ export interface RichEditorHandle {
   clear(): void
   focus(): void
   html(): string
+  /** Replace the content with plain text (one paragraph per line). */
+  setText(text: string): void
 }
 
 interface Props {
   /** Called with the HTML after every change. */
   onChange: (html: string) => void
-  /** Enter calls this (Shift+Enter inserts a line break). */
+  /** Enter calls this (Shift+Enter inserts a line break). Without it Enter starts a new paragraph (phone). */
   onEnter?: () => void
   placeholder?: string
+  /** The formatting toolbar; the phone hides it until "Aa" is pressed. */
+  showToolbar?: boolean
 }
 
-export const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor({ onChange, onEnter, placeholder }, ref) {
+export const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor({ onChange, onEnter, placeholder, showToolbar = true }, ref) {
   const { t } = useApp()
   const changed = useRef(onChange)
   changed.current = onChange
@@ -61,7 +65,13 @@ export const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEdito
         changed.current('')
       },
       focus: () => editor?.commands.focus(),
-      html: () => editor?.getHTML() ?? ''
+      html: () => editor?.getHTML() ?? '',
+      setText: (text) => {
+        if (!editor) return
+        const content = text.split(/\r?\n/).map((line) => (line ? { type: 'paragraph', content: [{ type: 'text', text: line }] } : { type: 'paragraph' }))
+        editor.commands.setContent({ type: 'doc', content })
+        changed.current(editor.getHTML())
+      }
     }),
     [editor]
   )
@@ -94,7 +104,7 @@ export const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEdito
 
   return (
     <div className="rich-editor composer-editor">
-      <div className="editor-toolbar">
+      {showToolbar && <div className="editor-toolbar">
         <Tool active={!state.h1 && !state.h2} title={`${t('editor.normal')} (${MOD}0)`} onRun={() => run().setParagraph().run()}>
           {t('editor.normal')}
         </Tool>
@@ -121,7 +131,7 @@ export const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEdito
         <Tool title={`${t('editor.indent')} (Tab)`} className="tool-square" onRun={() => run().indent().run()}>
           <Icon name="indent" size={16} />
         </Tool>
-      </div>
+      </div>}
       {linkOpen && (
         <div className="link-row">
           <input

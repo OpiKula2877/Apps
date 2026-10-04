@@ -1,6 +1,7 @@
 // Apply the selected theme as CSS variables and data attributes on <html>.
 import type { Settings } from '../../shared/ipc'
 import { lightness, mix, resolveColors, resolveFlags } from '../../shared/theme'
+import { Okfetch, isNative } from './mobile/native'
 
 export function applyTheme(settings: Settings): void {
   const c = resolveColors(settings)
@@ -43,4 +44,6 @@ export function applyTheme(settings: Settings): void {
   root.dataset.nativeFrame = String(flags.native_titlebar)
   root.style.colorScheme = lightness(c.background) > 0.5 ? 'light' : 'dark'
   root.lang = settings.language
+  // Android: the status and navigation bars (and the lock cover) take the theme colours.
+  if (isNative) void Okfetch.setBarColors({ background: c.background, text: c.text, light: lightness(c.background) > 0.5 }).catch(() => undefined)
 }

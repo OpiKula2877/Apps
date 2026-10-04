@@ -11,7 +11,7 @@ import { GroupService } from './groups/groupService'
 import { createIdentity, fromIdentifier, toIdentifier, type Identity } from './identity'
 import { MessageService } from './messages/messageService'
 import { FRAME_BLOCK, RELIABLE, decodeBlock, parseCtrl, PROTOCOL_VERSION, type Ctrl, type Frame } from './network/protocol'
-import { PeerNetwork, type Peer } from './network/swarm'
+import { PeerNetwork, type Peer, type RelayConfig } from './network/swarm'
 import type { OutboxEntry } from './records'
 import { RateLimiter } from './security/rateLimit'
 import { CoreState, plainProtector, type KeyProtector } from './state'
@@ -34,6 +34,8 @@ export interface CoreOptions {
   strangerTimeoutMs?: number
   /** How long opening the core waits for the network before it continues in the background. */
   startTimeoutMs?: number
+  /** Fallback through public Nostr relays when the DHT cannot connect two devices; null = off. */
+  relay?: RelayConfig | null
 }
 
 interface IdentityFile {
@@ -73,6 +75,7 @@ export class Core {
       identity: this.identity,
       bootstrap: options.bootstrap,
       retryMs: options.retryMs,
+      relay: options.relay ?? null,
       admit: (pub) => !this.isBlocked(pub),
       onOpen: (peer) => this.handleOpen(peer),
       onFrame: (peer, frame) => this.handleFrame(peer, frame),
@@ -364,6 +367,11 @@ export class Core {
     this.releaseIfUnused(pub)
     if (entry.frame.t === 'msg') this.messages.onDelivered(pub, entry.frame)
     else if (entry.frame.t === 'file_offer') this.transfers.onOfferDelivered(pub, entry.frame.rid)
+  }
+
+  /** Turn the relay fallback on or off (Settings), without restarting. */
+  setRelay(config: RelayConfig | null): void {
+    this.net.setRelay(config)
   }
 
   // --- life cycle ----------------------------------------------------------

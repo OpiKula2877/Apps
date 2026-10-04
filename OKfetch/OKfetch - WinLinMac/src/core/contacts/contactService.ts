@@ -69,6 +69,7 @@ export class ContactService {
         name: contact.name,
         username: contact.username,
         online: this.core.net.isOnline(contact.pub) && !this.core.isBlocked(contact.pub),
+        via: this.core.isBlocked(contact.pub) ? null : (this.core.net.peer(contact.pub)?.via ?? null),
         verified: contact.verified,
         blocked: this.core.isBlocked(contact.pub),
         avatar: this.avatarUrl(contact.icon) ?? this.avatarUrl(contact.avatar),

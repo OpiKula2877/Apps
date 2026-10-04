@@ -111,7 +111,7 @@ const BODY: Record<Lang, string> = {
 <ul>
 <li><b>Fetch</b> – kontakty a skupiny vlevo, otevřené chaty vpravo jako záložky.</li>
 <li><b>Nastavení</b> – profil, vzhled, zabezpečení, úložiště a systém.</li>
-<li>Vpravo nahoře je vaše jméno, stav sítě (Online / Připojování / Offline) a zvonek s počtem čekajících žádostí.</li>
+<li>Vpravo nahoře je vaše jméno a stav sítě (Online / Připojování / Offline).</li>
 <li><b>?</b> vpravo dole otevře tuto nápovědu.</li>
 </ul>
 
@@ -121,6 +121,7 @@ const BODY: Record<Lang, string> = {
 <h2>Jak navázat spojení</h2>
 <ol>
 <li>V <i>Nastavení → Profil</i> si nastavte <b>heslo pro příjem</b> a pošlete kamarádovi <b>identifikátor</b> a heslo – každé <b>jinou cestou</b> (např. identifikátor e-mailem, heslo po telefonu).</li>
+<li>Kamarád s OKfetch pro Android může místo opisování naskenovat <b>QR kód</b> v <i>Nastavení → Profil</i> (heslo mu i tak řekněte zvlášť).</li>
 <li>Kamarád klikne na <i>Přidat kontakt</i>, vyplní váš identifikátor a heslo a odešle žádost.</li>
 <li>Vám se v panelu <i>Žádosti</i> objeví jeho jméno. Kliknete na <i>Přijmout</i>, <i>Odmítnout</i> (volitelně s vysvětlením) nebo <i>Blokovat</i>.</li>
 <li>Po přijetí vzniknou dva chaty: <b>šifrovaný</b> a <b>nešifrovaný</b>.</li>
@@ -184,6 +185,13 @@ const BODY: Record<Lang, string> = {
 <li>Složku můžete změnit v <i>Nastavení → Úložiště a systém</i>; data se přesunou. Když se do složky nedá zapisovat, aplikace nabídne výběr jiné.</li>
 </ul>
 
+<h2>Když se zařízení nemohou spojit</h2>
+<ul>
+<li>OKfetch se nejdřív spojuje <b>přímo</b>. Když jsou obě strany za NAT s náhodnými porty (typicky mobilní data nebo internet přes mobilního operátora), přímé spojení nejde.</li>
+<li>Pak za pár sekund použije <b>náhradní cestu přes veřejné Nostr relay servery</b> (zdarma, bez registrace). Vše je šifrované mezi vámi a protistranou; relay vidí jen šifrované bloky, čas a IP adresu. U kontaktu uvidíte „online · přes relay“.</li>
+<li>Vypnutí, seznam relay a diagnostika (stav, typ připojení, zkušební spojení s kódem chyby) jsou v <i>Nastavení → Úložiště a systém → Síť a diagnostika spojení</i>.</li>
+</ul>
+
 <h2>Firewall</h2>
 {firewall}
 
@@ -210,7 +218,7 @@ const BODY: Record<Lang, string> = {
 <ul>
 <li><b>Fetch</b> – contacts and groups on the left, open chats on the right as tabs.</li>
 <li><b>Settings</b> – profile, appearance, security, storage and system.</li>
-<li>In the top right: your name, the network status (Online / Connecting / Offline) and a bell with the number of waiting requests.</li>
+<li>In the top right: your name and the network status (Online / Connecting / Offline).</li>
 <li><b>?</b> in the bottom right corner opens this help.</li>
 </ul>
 
@@ -220,6 +228,7 @@ const BODY: Record<Lang, string> = {
 <h2>How to connect</h2>
 <ol>
 <li>In <i>Settings → Profile</i> set a <b>receive password</b> and send your friend your <b>identifier</b> and the password – each <b>by a different route</b> (for example the identifier by e-mail, the password by phone).</li>
+<li>A friend with OKfetch for Android can scan the <b>QR code</b> in <i>Settings → Profile</i> instead of typing the identifier (the password is still told separately).</li>
 <li>Your friend clicks <i>Add contact</i>, enters your identifier and the password and sends the request.</li>
 <li>You see their name in the <i>Requests</i> panel. Click <i>Accept</i>, <i>Decline</i> (optionally with an explanation) or <i>Block</i>.</li>
 <li>After you accept, two chats exist: an <b>encrypted</b> and a <b>plain</b> one.</li>
@@ -281,6 +290,13 @@ const BODY: Record<Lang, string> = {
 <li>Your data (messages, files, keys) is only on your computer, in <code>{storage}</code>.</li>
 <li>Appearance settings are in <code>{config}</code>.</li>
 <li>Change the folder in <i>Settings → Storage and system</i>; the data is moved. If the folder cannot be written, the app offers to choose another.</li>
+</ul>
+
+<h2>When devices cannot connect</h2>
+<ul>
+<li>OKfetch connects <b>directly</b> first. When both sides are behind NATs with random ports (typically mobile data or internet through a mobile operator), a direct connection is not possible.</li>
+<li>After a few seconds it then uses the <b>fallback through public Nostr relays</b> (free, no account). Everything stays encrypted between you and the other side; relays see only encrypted blocks, timing and the IP address. The contact shows “online · through a relay”.</li>
+<li>The switch, the relay list and the diagnostics (state, connection type, a test connection with the error code) are in <i>Settings → Storage and system → Network and connection diagnostics</i>.</li>
 </ul>
 
 <h2>Firewall</h2>

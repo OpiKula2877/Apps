@@ -4,3 +4,12 @@ dist/
 *.log
 *.tsbuildinfo
 dev-data/
+dist-mobile/
+mobile-worklet/node_modules/
+mobile-worklet/build/
+android/app/libs/bare-kit/
+android/app/src/main/addons/
+android/app/src/main/assets/okfetch.bundle
+android/keystore.properties
+android/keystore/
+android/local.properties

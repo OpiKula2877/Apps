@@ -5,6 +5,7 @@ import { api } from '../api'
 import { Icon } from '../components/Icon'
 import { useApp } from '../context'
 import { RejectFeedbackDialog } from '../dialogs/RejectFeedbackDialog'
+import { isAndroid } from '../mobile/phone'
 import { formatSize, isImage } from '../util/format'
 import { MediaPreview } from './MediaPreview'
 
@@ -15,7 +16,7 @@ interface Props {
 }
 
 export function FileOfferCard({ message, done }: Props) {
-  const { t } = useApp()
+  const { t, notify } = useApp()
   const [explain, setExplain] = useState(false)
   const file = message.file
   if (!file) return null
@@ -73,9 +74,20 @@ export function FileOfferCard({ message, done }: Props) {
           <button type="button" onClick={() => void api.openFile(chatId, message.id)}>
             {t('file.open')}
           </button>
-          <button type="button" onClick={() => void api.showFile(chatId, message.id)}>
-            <Icon name="folder" size={16} /> {t('file.show')}
-          </button>
+          {isAndroid() ? (
+            <>
+              <button type="button" onClick={() => void api.saveFile(chatId, message.id).then((ok) => notify(t(ok ? 'file.saved' : 'file.save_failed'), !ok))}>
+                <Icon name="download" size={16} /> {t('file.save')}
+              </button>
+              <button type="button" onClick={() => void api.shareFile(chatId, message.id)}>
+                <Icon name="share" size={16} /> {t('file.share')}
+              </button>
+            </>
+          ) : (
+            <button type="button" onClick={() => void api.showFile(chatId, message.id)}>
+              <Icon name="folder" size={16} /> {t('file.show')}
+            </button>
+          )}
         </div>
       ) : (
         <span className="muted">{t('file.sent')}</span>

@@ -11,10 +11,6 @@
   color: var(--danger);
   border-color: var(--danger);
 }
-.bell {
-  position: relative;
-  display: inline-flex;
-}
 .badge {
   display: inline-flex;
   align-items: center;
@@ -28,12 +24,6 @@
   font-size: 0.8em;
   font-weight: bold;
   line-height: 1;
-}
-.bell-badge {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  pointer-events: none;
 }
 .icon-button.toggled {
   background: var(--accent);

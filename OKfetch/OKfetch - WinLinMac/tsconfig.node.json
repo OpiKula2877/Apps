@@ -16,8 +16,10 @@
     "electron.vite.config.ts",
     "src/core/**/*",
     "src/main/**/*",
+    "src/mobile/**/*",
     "src/preload/**/*",
     "src/renderer/src/i18n/strings.ts",
+    "src/renderer/src/mobile/mobileApi.ts",
     "src/shared/**/*",
     "tests/**/*.ts",
     "vitest.config.ts"

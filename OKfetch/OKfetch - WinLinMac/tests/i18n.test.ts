@@ -20,7 +20,7 @@ function literalKeys(): Set<string> {
   for (const file of sources(join(SRC, 'renderer'))) {
     const text = readFileSync(file, 'utf8')
     for (const m of text.matchAll(/\bt\(\s*'([a-z_]+\.[a-z_.]+)'/g)) keys.add(m[1])
-    for (const m of text.matchAll(/'((?:settings\.tab|tabs|chat|file|contact|group|list|request|requests|add|verify|storage|header|toast|reject|editor)\.[a-z_.]+)'/g)) {
+    for (const m of text.matchAll(/'((?:settings\.tab|tabs|chat|file|contact|group|list|request|requests|add|verify|storage|header|toast|reject|editor|lock|backup|phone|qr|share|keys|diag|relay)\.[a-z_.]+)'/g)) {
       if (!m[1].endsWith('.')) keys.add(m[1])
     }
   }
@@ -31,7 +31,10 @@ function literalKeys(): Set<string> {
 const dynamicKeys = [
   ...COLOR_ROLES.map((r) => `color.${r}`),
   ...FLAG_NAMES.map((f) => `flag.${f}`),
-  ...['light', 'dark', 'opikula', 'custom'].map((th) => `theme.${th}`),
+  ...['light', 'dark', 'opikula', 'custom', 'system'].map((th) => `theme.${th}`),
+  ...['none', 'unavailable'].map((a) => `lock.${a}`),
+  ...['connected', 'peer_not_found', 'holepunch_double_randomized_nats', 'timeout'].map((c) => `diag.probe.${c}`),
+  ...['wrong_password', 'damaged', 'short', 'mismatch', 'key_unavailable', 'io'].map((e) => `backup.error.${e}`),
   ...['connecting', 'online', 'offline'].map((n) => `net.${n}`),
   ...['fetch', 'settings'].map((n) => `tabs.${n}`),
   ...['empty', 'too_long_offline', 'no_chat', 'not_connected', 'no_file'].map((r) => `chat.send_error.${r}`),

@@ -3,6 +3,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createIdentity, toIdentifier } from '../src/core/identity'
 import { PeerNetwork, type Peer } from '../src/core/network/swarm'
 import { FRAME_BLOCK, decodeBlock, parseCtrl, type Ctrl, type Frame } from '../src/core/network/protocol'
+import { webSocketFactory } from '../src/core/network/relay/webSocket'
+import type { NetworkOptions } from '../src/core/network/swarm'
+import { startFakeRelay } from './helpers/fakeRelay'
 
 type Testnet = Awaited<ReturnType<typeof createTestnet>>
 
@@ -34,7 +37,7 @@ describe('peer network', () => {
     await testnet.destroy()
   })
 
-  async function node(admit: (pub: string) => boolean = () => true): Promise<Node> {
+  async function node(admit: (pub: string) => boolean = () => true, extra: Partial<NetworkOptions> = {}): Promise<Node> {
     const identity = createIdentity()
     const state: Node = { net: null as never, pub: toIdentifier(identity.publicKey), ctrl: [], blocks: [], opened: [] }
     state.net = new PeerNetwork({
@@ -51,7 +54,8 @@ describe('peer network', () => {
         }
       },
       onClose: () => undefined,
-      onStatus: () => undefined
+      onStatus: () => undefined,
+      ...extra
     })
     await state.net.start()
     nodes.push(state)
@@ -106,5 +110,62 @@ describe('peer network', () => {
     await new Promise((r) => setTimeout(r, 2500))
     expect(c.net.isOnline(d.pub)).toBe(false)
     expect(c.opened).toHaveLength(0)
+  })
+
+  it('falls back to the relay when the DHT cannot connect two peers, and prefers a direct connection', async () => {
+    const relay = await startFakeRelay()
+    const otherNet = await createTestnet(3)
+    try {
+      const relayConfig = { urls: [relay.url], socket: webSocketFactory, afterMs: 300, reconnectMs: 100 }
+      // Separate DHTs: the peers can never find each other directly, as with two randomized NATs.
+      const r1 = await node(() => true, { relay: relayConfig })
+      const r2 = await node(() => true, { relay: relayConfig, bootstrap: otherNet.bootstrap })
+      r1.net.dial(r2.pub)
+      await until(() => r1.net.isOnline(r2.pub) && r2.net.isOnline(r1.pub), 20000)
+      expect(r1.net.peer(r2.pub)?.via).toBe('relay')
+      expect(r1.net.diagnostics().relay).toMatchObject({ connected: 1, links: 1 })
+      r1.net.peer(r2.pub)!.send({ t: 'typing', chat: 'enc' })
+      await until(() => r2.ctrl.some((c) => c.t === 'typing'))
+      await r1.net.peer(r2.pub)!.sendBlock('0123456789abcdef0123456789abcdef', 0, Buffer.alloc(70_000, 1))
+      await until(() => r2.blocks.includes(0))
+
+      // Same DHT: the direct connection wins even with the relay on.
+      const d1 = await node(() => true, { relay: relayConfig })
+      const d2 = await node(() => true, { relay: relayConfig })
+      d1.net.dial(d2.pub)
+      await until(() => d1.net.isOnline(d2.pub), 20000)
+      expect(d1.net.peer(d2.pub)?.via).toBe('direct')
+    } finally {
+      await otherNet.destroy()
+      await relay.close()
+    }
+  })
+
+  it('reports its network state for the diagnostics screen', async () => {
+    const e = await node()
+    const info = e.net.diagnostics()
+    expect(info.status).toBe('online')
+    expect(typeof info.firewalled).toBe('boolean')
+    expect(typeof info.randomized).toBe('boolean')
+    expect(Array.isArray(info.localAddresses)).toBe(true)
+    expect(info.localAddresses.every((a) => /^\d+\.\d+\.\d+\.\d+$/.test(a))).toBe(true)
+    expect(info.connections).toBe(0)
+  })
+
+  it('probes a peer: reachable, already connected, or the DHT error code', async () => {
+    const f = await node()
+    const g = await node()
+    const reachable = await f.net.probe(g.pub, 15000)
+    expect(reachable).toMatchObject({ ok: true, code: null })
+    expect(reachable.ms).toBeGreaterThanOrEqual(0)
+
+    f.net.dial(g.pub)
+    await until(() => f.net.isOnline(g.pub), 30000)
+    expect(await f.net.probe(g.pub)).toMatchObject({ ok: true, code: 'CONNECTED' })
+
+    const nobody = toIdentifier(createIdentity().publicKey)
+    const missing = await f.net.probe(nobody, 15000)
+    expect(missing.ok).toBe(false)
+    expect(missing.code).toBe('PEER_NOT_FOUND')
   })
 })

@@ -17,6 +17,8 @@ interface Props {
   /** Index of the highlighted occurrence inside this message, or null. */
   activeMatch: number | null
   transferDone?: number
+  /** Phone: holding a message starts selecting (Android fires contextmenu on a long press). */
+  onLongPress?: () => void
 }
 
 function StatusMark({ message }: { message: MessageView }) {
@@ -27,7 +29,7 @@ function StatusMark({ message }: { message: MessageView }) {
   return <span className="read-mark" title={t('chat.status.read')}><Icon name="check_double" size={14} /></span>
 }
 
-export function MessageBubble({ message, showSender, selectionMode, selected, onToggle, query, activeMatch, transferDone }: Props) {
+export function MessageBubble({ message, showSender, selectionMode, selected, onToggle, query, activeMatch, transferDone, onLongPress }: Props) {
   const { t, settings } = useApp()
   const bubble = useRef<HTMLDivElement>(null)
   const html = useMemo(() => (message.file || message.broken ? '' : highlight(message.html, query, activeMatch)), [message.html, message.file, message.broken, query, activeMatch])
@@ -48,7 +50,16 @@ export function MessageBubble({ message, showSender, selectionMode, selected, on
   }
 
   return (
-    <div className={`message-row ${message.mine ? 'mine' : 'theirs'} ${selectionMode ? 'selecting' : ''} ${selected ? 'selected' : ''}`} onClick={selectionMode ? onToggle : undefined}>
+    <div className={`message-row ${message.mine ? 'mine' : 'theirs'} ${selectionMode ? 'selecting' : ''} ${selected ? 'selected' : ''}`} onClick={selectionMode ? onToggle : undefined}
+      onContextMenu={
+        onLongPress
+          ? (event) => {
+              event.preventDefault()
+              onLongPress()
+            }
+          : undefined
+      }
+    >
       {selectionMode && <input type="checkbox" className="select-box" checked={selected} onChange={onToggle} onClick={(e) => e.stopPropagation()} />}
       <div className="bubble" ref={bubble} data-message={message.id}>
         {showSender && !message.mine && <div className="bubble-sender">{message.fromName}</div>}

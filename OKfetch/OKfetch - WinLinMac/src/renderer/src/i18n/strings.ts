@@ -20,12 +20,12 @@ export const STRINGS: Record<string, { cs: string; en: string }> = {
   'tabs.close': { cs: 'Zavřít záložku', en: 'Close tab' },
   'tabs.close_all': { cs: 'Zavřít vše', en: 'Close all' },
   'header.no_name': { cs: '(bez jména)', en: '(no name)' },
-  'header.requests': { cs: 'Žádosti', en: 'Requests' },
   'net.connecting': { cs: 'Připojování', en: 'Connecting' },
   'net.online': { cs: 'Online', en: 'Online' },
   'net.offline': { cs: 'Offline', en: 'Offline' },
   'status.online': { cs: 'online', en: 'online' },
   'status.offline': { cs: 'offline', en: 'offline' },
+  'status.online_relay': { cs: 'online · přes relay', en: 'online · through a relay' },
   'toast.new_request': { cs: 'Nová žádost od {name}', en: 'New request from {name}' },
 
   'list.add_contact': { cs: 'Přidat kontakt', en: 'Add contact' },
@@ -256,5 +256,142 @@ export const STRINGS: Record<string, { cs: string; en: string }> = {
   'storage.error.not_writable': { cs: 'Do této složky se nedá zapisovat.', en: 'This folder cannot be written to.' },
   'storage.error.not_empty': { cs: 'Cílová složka není prázdná.', en: 'The target folder is not empty.' },
   'storage.error.copy_failed': { cs: 'Data se nepodařilo zkopírovat.', en: 'The data could not be copied.' },
-  'storage.error.unknown': { cs: 'Neznámá chyba.', en: 'Unknown error.' }
+  'storage.error.unknown': { cs: 'Neznámá chyba.', en: 'Unknown error.' },
+
+  // Android
+  'common.back': { cs: 'Zpět', en: 'Back' },
+  'settings.tab.system_phone': { cs: 'Pozadí, notifikace a záloha', en: 'Background, notifications and backup' },
+  'theme.system': { cs: 'Podle systému (světlý / tmavý)', en: 'Follow the system (light / dark)' },
+  'chat.formatting': { cs: 'Formátování', en: 'Formatting' },
+  'chat.attach_file': { cs: 'Soubor', en: 'File' },
+  'chat.attach_photo': { cs: 'Vyfotit', en: 'Take photo' },
+  'file.save': { cs: 'Uložit', en: 'Save' },
+  'file.saved': { cs: 'Uloženo do Stažených (složka OKfetch).', en: 'Saved to Downloads (folder OKfetch).' },
+  'file.save_failed': { cs: 'Soubor se nepodařilo uložit.', en: 'The file could not be saved.' },
+  'file.share': { cs: 'Sdílet', en: 'Share' },
+  'qr.title': { cs: 'QR kód', en: 'QR code' },
+  'qr.info': {
+    cs: 'Kamarád s OKfetch pro Android ho naskenuje v okně Přidat kontakt. Obsahuje identifikátor a jméno, heslo ne.',
+    en: 'A friend with OKfetch for Android scans it in the Add contact window. It holds the identifier and the name, not the password.'
+  },
+  'qr.scan': { cs: 'Naskenovat QR', en: 'Scan QR' },
+  'qr.invalid': { cs: 'Tohle není QR kód OKfetch.', en: 'This is not an OKfetch QR code.' },
+  'share.title': { cs: 'Sdílet do…', en: 'Share to…' },
+  'share.files_only_contacts': { cs: 'Soubory jdou jen do chatů s kontaktem.', en: 'Files go only to chats with a contact.' },
+  'share.no_chats': { cs: 'Zatím nemáte žádný chat.', en: 'You have no chats yet.' },
+  'share.failed': { cs: 'Nepodařilo se nabídnout souborů: {n}', en: 'Files that could not be offered: {n}' },
+  'lock.title': { cs: 'Zámek aplikace', en: 'App lock' },
+  'lock.info': {
+    cs: 'Při spuštění a po návratu do aplikace se ptá na otisk prstu (nebo PIN či gesto telefonu). Zprávy se na pozadí přijímají dál.',
+    en: 'Asks for the fingerprint (or the phone PIN or pattern) on start and when you come back. Messages keep arriving in the background.'
+  },
+  'lock.enable': { cs: 'Odemykat otiskem prstu', en: 'Unlock with fingerprint' },
+  'lock.after': { cs: 'Zamknout po', en: 'Lock after' },
+  'lock.now': { cs: 'hned', en: 'at once' },
+  'lock.minutes': { cs: 'po {n} min', en: 'after {n} min' },
+  'lock.screenshots': { cs: 'Blokovat snímky obrazovky', en: 'Block screenshots' },
+  'lock.none': {
+    cs: 'Telefon nemá nastavený otisk prstu ani zámek obrazovky. Nastavte je v nastavení telefonu.',
+    en: 'The phone has no fingerprint and no screen lock. Set them up in the phone settings.'
+  },
+  'lock.unavailable': { cs: 'Tento telefon zámek aplikace nepodporuje.', en: 'This phone does not support the app lock.' },
+  'phone.background': { cs: 'Běh na pozadí', en: 'Running in the background' },
+  'phone.background_info': {
+    cs: 'OKfetch nemá server: zprávy přijímá jen běžící aplikace. Na pozadí zůstane v liště notifikace „OKfetch běží“. Vypnuto = přijímá jen otevřená aplikace, zprávy zatím počkají u odesílatele.',
+    en: 'OKfetch has no server: only a running app receives messages. In the background a notification “OKfetch is running” stays in the bar. Off = only the open app receives; messages wait at the sender meanwhile.'
+  },
+  'phone.background_on': { cs: 'Běžet na pozadí', en: 'Run in background' },
+  'phone.battery_optimized': {
+    cs: 'Optimalizace baterie může OKfetch na pozadí uspat.',
+    en: 'Battery optimisation may put OKfetch to sleep in the background.'
+  },
+  'phone.battery_ok': { cs: 'Optimalizace baterie je pro OKfetch vypnutá.', en: 'Battery optimisation is off for OKfetch.' },
+  'phone.battery_button': { cs: 'Vypnout optimalizaci baterie', en: 'Disable battery optimisation' },
+  'phone.notifications': { cs: 'Notifikace', en: 'Notifications' },
+  'phone.notifications_denied': {
+    cs: 'Telefon notifikace OKfetch nepovolil. Povolte je v nastavení telefonu → Aplikace → OKfetch.',
+    en: 'The phone does not allow notifications from OKfetch. Allow them in the phone settings → Apps → OKfetch.'
+  },
+  'phone.hide_content': { cs: 'Skrýt obsah notifikací (jen „Nová zpráva“)', en: 'Hide notification content (only “New message”)' },
+  'backup.title': { cs: 'Záloha a obnova', en: 'Backup and restore' },
+  'backup.info': {
+    cs: 'Záloha uloží identitu, kontakty, skupiny a chaty do jednoho souboru zamčeného heslem. Bez ní o ně při ztrátě telefonu přijdete. Stejnou identitu nepoužívejte na dvou zařízeních zároveň.',
+    en: 'A backup puts the identity, contacts, groups and chats into one file locked with a password. Without it a lost phone means losing them. Do not use one identity on two devices at once.'
+  },
+  'backup.password': { cs: 'Heslo zálohy', en: 'Backup password' },
+  'backup.password_again': { cs: 'Heslo zálohy znovu', en: 'Backup password again' },
+  'backup.with_files': { cs: 'Přibalit i přijaté soubory (může být velké)', en: 'Include received files (can be large)' },
+  'backup.create': { cs: 'Zálohovat', en: 'Back up' },
+  'backup.done': { cs: 'Záloha je uložená.', en: 'The backup is saved.' },
+  'backup.restore': { cs: 'Obnovit', en: 'Restore' },
+  'backup.restore_info': { cs: 'Vyberete soubor .okfb a zadáte heslo zálohy. Současná data se nahradí.', en: 'Pick a .okfb file and enter the backup password. The current data is replaced.' },
+  'backup.restore_text': {
+    cs: 'Současná identita, kontakty a chaty v tomto telefonu se nahradí obsahem zálohy. Pokračovat?',
+    en: 'The identity, contacts and chats on this phone are replaced by the backup. Continue?'
+  },
+  'backup.restored': { cs: 'Záloha je obnovená.', en: 'The backup is restored.' },
+  'backup.error.short': { cs: 'Heslo zálohy musí mít aspoň 8 znaků.', en: 'The backup password needs at least 8 characters.' },
+  'backup.error.mismatch': { cs: 'Hesla se neshodují.', en: 'The passwords do not match.' },
+  'backup.error.wrong_password': { cs: 'Špatné heslo zálohy.', en: 'Wrong backup password.' },
+  'backup.error.damaged': { cs: 'Soubor není záloha OKfetch nebo je poškozený.', en: 'The file is not an OKfetch backup or it is damaged.' },
+  'backup.error.key_unavailable': { cs: 'Klíče v tomto telefonu nejdou otevřít, zálohu nejde vytvořit.', en: 'The keys on this phone cannot be opened, so no backup can be made.' },
+  'backup.error.io': { cs: 'Zálohu se nepodařilo uložit.', en: 'The backup could not be saved.' },
+  'keys.title': { cs: 'Klíče nejdou otevřít', en: 'The keys cannot be opened' },
+  'keys.info': {
+    cs: 'Klíč, kterým telefon chrání vaši identitu, zmizel (například po smazání dat aplikace). Obnovte zálohu, nebo začněte znovu s novou identitou.',
+    en: 'The key the phone uses to protect your identity is gone (for example after the app data was cleared). Restore a backup or start again with a new identity.'
+  },
+  'keys.reset': { cs: 'Začít znovu', en: 'Start again' },
+  'diag.title': { cs: 'Síť a diagnostika spojení', en: 'Network and connection diagnostics' },
+  'diag.info': {
+    cs: 'Co o tomto zařízení vidí síť a zkušební spojení s kontakty. Když se někdo nemůže spojit, zkopírujte diagnostiku z obou zařízení.',
+    en: 'What the network sees of this device, and a test connection to your contacts. When two devices cannot connect, copy the diagnostics from both.'
+  },
+  'diag.status': { cs: 'Stav', en: 'State' },
+  'diag.public': { cs: 'Veřejná adresa', en: 'Public address' },
+  'diag.nat': { cs: 'Typ připojení', en: 'Connection type' },
+  'diag.nat.open': { cs: 'otevřené – ostatní se připojí přímo', en: 'open – others connect directly' },
+  'diag.nat.consistent': { cs: 'za NAT se stálými porty – spojení přes děrování obvykle funguje', en: 'behind NAT with stable ports – holepunching usually works' },
+  'diag.nat.randomized': {
+    cs: 'za NAT s náhodnými porty (typicky mobilní data) – se stejným typem na druhé straně přímé spojení nevznikne',
+    en: 'behind NAT with random ports (typical for mobile data) – no direct connection to a side of the same type'
+  },
+  'diag.local': { cs: 'Adresa v místní síti', en: 'Local network address' },
+  'diag.local_none': { cs: 'nezjištěna', en: 'unknown' },
+  'diag.connections': { cs: 'Otevřená spojení', en: 'Open connections' },
+  'diag.peers': { cs: 'Zkušební spojení', en: 'Test connection' },
+  'diag.test': { cs: 'Otestovat', en: 'Test' },
+  'diag.copy': { cs: 'Kopírovat diagnostiku', en: 'Copy diagnostics' },
+  'diag.copied': { cs: 'Diagnostika je ve schránce.', en: 'The diagnostics are in the clipboard.' },
+  'relay.title': { cs: 'Náhradní cesta přes relay', en: 'Fallback through relays' },
+  'relay.info': {
+    cs: 'Když se dvě zařízení nemohou spojit přímo (obě za NAT s náhodnými porty, typicky mobilní data), OKfetch pošle data přes veřejné Nostr relay servery – zdarma a bez registrace. Vše je šifrované mezi vámi a protistranou; relay vidí jen šifrované bloky, čas a vaši IP adresu. Jakmile jde přímé spojení, použije se to.',
+    en: 'When two devices cannot connect directly (both behind NATs with random ports, typically mobile data), OKfetch sends the data through public Nostr relays – free, no account. Everything is encrypted between you and the other side; relays see only encrypted blocks, timing and your IP address. A direct connection is used as soon as it works.'
+  },
+  'relay.enable': { cs: 'Použít náhradní cestu přes veřejné relay', en: 'Use the fallback through public relays' },
+  'relay.status': { cs: 'Relay: připojeno {connected} z {total} · přes relay: {links}', en: 'Relays: {connected} of {total} connected · through relays: {links}' },
+  'relay.list': { cs: 'Relay servery (jeden na řádek; obě strany potřebují aspoň jeden společný)', en: 'Relays (one per line; both sides need at least one in common)' },
+  'relay.saved': { cs: 'Seznam relay je uložený.', en: 'The relay list is saved.' },
+  'relay.defaults': { cs: 'Výchozí seznam', en: 'Default list' },
+  'diag.probe.connected': { cs: 'Spojení je otevřené (přímo).', en: 'The connection is open (direct).' },
+  'diag.probe.connected_relay': { cs: 'Spojení je otevřené přes relay (přímé spojení nejde).', en: 'The connection is open through a relay (no direct path).' },
+  'diag.probe.ok': { cs: 'Spojení funguje ({ms} ms).', en: 'The connection works ({ms} ms).' },
+  'diag.probe.peer_not_found': {
+    cs: 'Protistrana není v síti k nalezení: OKfetch u ní neběží nebo se nepřipojil k internetu.',
+    en: 'The other side cannot be found in the network: OKfetch is not running there or is not connected.'
+  },
+  'diag.probe.holepunch_double_randomized_nats': {
+    cs: 'Obě strany jsou za NAT s náhodnými porty (typicky obě na mobilních datech). Přímé spojení nejde – zkuste jednu stranu na Wi-Fi.',
+    en: 'Both sides are behind NAT with random ports (typically both on mobile data). No direct connection – try one side on Wi-Fi.'
+  },
+  'diag.probe.holepunch': {
+    cs: 'Prorazit NAT se nepovedlo: router nebo firewall blokuje UDP.',
+    en: 'Holepunching failed: a router or firewall blocks UDP.'
+  },
+  'diag.probe.timeout': { cs: 'Spojení nevzniklo včas.', en: 'The connection did not open in time.' },
+  'diag.probe.other': { cs: 'Spojení se nepovedlo ({code}).', en: 'The connection failed ({code}).' },
+  'keys.reset_text': {
+    cs: 'Smaže všechna data v telefonu a vytvoří novou identitu. Kontakty vás budou muset přidat znovu.',
+    en: 'Deletes all data on this phone and creates a new identity. Your contacts will have to add you again.'
+  }
 }

@@ -1,0 +1,26 @@
+{
+  "name": "okfetch-worklet",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OKfetch core for the Android app: runs in a Bare Kit worklet (built by scripts/build-worklet.mjs)",
+  "author": "OpiKula",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "b4a": "1.9.0",
+    "bare-buffer": "^3.7.1",
+    "bare-fs": "^4.8.2",
+    "bare-os": "^3.9.3",
+    "bare-path": "^3.1.2",
+    "bare-ws": "^3.2.0",
+    "hyperswarm": "4.17.2",
+    "sodium-universal": "5.0.1",
+    "z32": "1.1.0"
+  },
+  "devDependencies": {
+    "bare": "^1.34.1",
+    "bare-link": "^3.3.2",
+    "bare-pack": "^2.2.2"
+  }
+}

@@ -1,6 +1,6 @@
 // The API of the app as one table of handlers. Electron's main process and the phone's Bare worklet both use it.
 import { extname } from 'node:path'
-import type { ApiHandlers, AppStatus, SendFileResult, Settings } from '../shared/ipc'
+import type { ApiHandlers, AppStatus, BackupResult, SendFileResult, Settings } from '../shared/ipc'
 import type { Core } from './controller'
 import type { KeyProtector } from './state'
 
@@ -11,13 +11,23 @@ export interface ApiHost {
   settings(): Settings
   updateSettings(patch: Partial<Settings>): Settings
   pickFolder(): Promise<string | null>
-  pickFile(): Promise<string | null>
+  pickFile(source?: 'file' | 'camera'): Promise<string | null>
   useStoragePath(path: string, move: boolean): Promise<{ ok: true } | { ok: false; error: string }>
   openPath(path: string): Promise<void>
   showItem(path: string): void
   openExternal(url: string): Promise<void>
   copyText(text: string): void
+  // Android only; the desktop leaves them out.
+  /** A file the host copied into the app (shared from another app) and that may be sent. */
+  isPrepared?(path: string): boolean
+  saveFile?(path: string): Promise<boolean>
+  shareFile?(path: string): Promise<void>
+  createBackup?(password: string, withFiles: boolean): Promise<BackupResult>
+  restoreBackup?(password: string): Promise<BackupResult>
+  resetData?(): Promise<void>
 }
+
+const UNSUPPORTED: BackupResult = { ok: false, error: 'unsupported' }
 
 // Received files that are safe to open with the system viewer; everything else is only shown in its folder.
 const OPENABLE = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.txt', '.pdf', '.mp3', '.mp4'])
@@ -34,6 +44,8 @@ export function createHandlers(host: ApiHost): ApiHandlers {
     setAvatar: (png) => host.core().contacts.setAvatar(png instanceof Uint8Array ? png : null),
     setPassword: (password) => host.core().contacts.setPassword(password === null ? null : String(password)),
     getNetStatus: () => host.core().net.status,
+    getNetDiagnostics: () => host.core().net.diagnostics(),
+    probePeer: (pub) => host.core().net.probe(String(pub)),
     getSecurityInfo: () => ({ backend: host.protector().backend, strong: host.protector().strong, storagePath: host.core().state.root }),
 
     listContacts: () => host.core().contacts.list(),
@@ -67,10 +79,12 @@ export function createHandlers(host: ApiHost): ApiHandlers {
     markRead: (chatId) => host.core().messages.markRead(String(chatId)),
     deleteMessages: (chatId, ids, scope) =>
       host.core().messages.deleteMessages(String(chatId), Array.isArray(ids) ? ids.map(String) : [], scope === 'both' ? 'both' : 'me'),
-    sendFile: async (chatId): Promise<SendFileResult> => {
-      const path = await host.pickFile()
+    sendFile: async (chatId, source): Promise<SendFileResult> => {
+      const path = await host.pickFile(source === 'camera' ? 'camera' : 'file')
       return path ? host.core().transfers.sendFile(String(chatId), path) : { ok: false, reason: 'cancelled' }
     },
+    sendPrepared: async (chatId, path): Promise<SendFileResult> =>
+      host.isPrepared?.(String(path)) ? host.core().transfers.sendFile(String(chatId), String(path)) : { ok: false, reason: 'no_file' },
     acceptFile: (chatId, id) => host.core().transfers.accept(String(chatId), String(id)),
     rejectFile: (chatId, id, feedback) => host.core().transfers.reject(String(chatId), String(id), feedback === undefined ? '' : String(feedback)),
     cancelFile: (chatId, id) => host.core().transfers.cancel(String(chatId), String(id)),
@@ -84,13 +98,27 @@ export function createHandlers(host: ApiHost): ApiHandlers {
       const path = host.core().transfers.filePath(String(chatId), String(id))
       if (path) host.showItem(path)
     },
+    saveFile: async (chatId, id) => {
+      const path = host.core().transfers.filePath(String(chatId), String(id))
+      return path && host.saveFile ? host.saveFile(path) : false
+    },
+    shareFile: async (chatId, id) => {
+      const path = host.core().transfers.filePath(String(chatId), String(id))
+      if (path && host.shareFile) await host.shareFile(path)
+    },
     openExternal: async (url) => {
       if (SAFE_URL.test(String(url))) await host.openExternal(String(url))
     },
     copyText: (text) => host.copyText(String(text)),
 
     getSettings: () => host.settings(),
-    updateSettings: (patch) => host.updateSettings(patch)
+    updateSettings: (patch) => host.updateSettings(patch),
+
+    createBackup: (password, withFiles) => (host.createBackup ? host.createBackup(String(password), Boolean(withFiles)) : UNSUPPORTED),
+    restoreBackup: (password) => (host.restoreBackup ? host.restoreBackup(String(password)) : UNSUPPORTED),
+    resetData: async () => {
+      await host.resetData?.()
+    }
   }
 }
 

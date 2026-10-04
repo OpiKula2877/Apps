@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { isGroupChat, parseChatId, type MessageView } from '../../../shared/model'
 import { api } from '../api'
+import { Avatar } from '../components/Avatar'
 import { Icon, IconButton } from '../components/Icon'
 import { useApp } from '../context'
 import { useData } from '../data'
@@ -16,11 +17,16 @@ interface Props {
   chatId: string
   /** The chat is the visible tab of the visible page. */
   active: boolean
+  /** Phone: the chat fills the screen and has its own header with a back arrow. */
+  onBack?: () => void
+  /** Text shared from another app, put into the composer once. */
+  draft?: string
+  onDraftUsed?: () => void
 }
 
 const NEAR_BOTTOM_PX = 140
 
-export function ChatView({ chatId, active }: Props) {
+export function ChatView({ chatId, active, onBack, draft, onDraftUsed }: Props) {
   const { t, settings, confirm, notify } = useApp()
   const data = useData()
   const [messages, setMessages] = useState<MessageView[]>([])
@@ -136,12 +142,36 @@ export function ChatView({ chatId, active }: Props) {
   const firstPending = messages.findIndex((m) => m.mine && m.status === 'pending')
   const showSender = isGroupChat(chatId)
 
+  const phone = onBack !== undefined
+  const encrypted = parsed?.type === 'contact' ? parsed.kind === 'enc' : group?.type === 'enc'
+  const title = contact?.name ?? group?.name ?? '…'
+  const startSelecting = (id: string): void => {
+    setSelecting(true)
+    setSelected(new Set([id]))
+  }
+
   return (
     <div className="chat">
       <div className="chat-toolbar">
+        {phone && (
+          <>
+            <IconButton icon="back" label={t('common.back')} onClick={onBack} />
+            {group ? <Avatar name={group.name} group size={30} /> : <Avatar name={title} src={contact?.avatar} online={contact?.online} size={30} />}
+            <div className="chat-title">
+              <div className="item-title ellipsis">
+                {encrypted && <Icon name="lock" size={13} />} {title}
+              </div>
+              <div className="item-sub muted">
+                {group
+                  ? t('group.members_online', { online: group.members.filter((m) => m.online).length, total: group.members.length })
+                  : t(encrypted ? 'contact.chat_enc' : 'contact.chat_plain')}
+              </div>
+            </div>
+          </>
+        )}
         <div className="grow" />
-        <IconButton icon="search" label={`${t('chat.search')} (${api.platform === 'macos' ? '⌘' : 'Ctrl+'}F)`} size={16} onClick={() => setSearching(true)} />
-        <IconButton icon="list_check" label={t('chat.select')} size={16} className={selecting ? 'toggled' : ''} onClick={() => (selecting ? stopSelecting() : setSelecting(true))} />
+        <IconButton icon="search" label={phone ? t('chat.search') : `${t('chat.search')} (${api.platform === 'macos' ? '⌘' : 'Ctrl+'}F)`} size={phone ? 20 : 16} onClick={() => setSearching(true)} />
+        <IconButton icon="list_check" label={t('chat.select')} size={phone ? 20 : 16} className={selecting ? 'toggled' : ''} onClick={() => (selecting ? stopSelecting() : setSelecting(true))} />
       </div>
       {searching && (
         <ChatSearch query={query} onQuery={(q) => { setQuery(q); setMatch(0) }} index={total ? ((match % total) + total) % total : 0} total={total} onStep={(d) => setMatch((m) => m + d)} onClose={closeSearch} />
@@ -168,6 +198,7 @@ export function ChatView({ chatId, active }: Props) {
                 query={query}
                 activeMatch={activeLocation?.id === message.id ? activeLocation.occurrence : null}
                 transferDone={progress[message.id]}
+                onLongPress={phone && !selecting ? () => startSelecting(message.id) : undefined}
               />
             </Fragment>
           )
@@ -177,7 +208,7 @@ export function ChatView({ chatId, active }: Props) {
       {selecting ? (
         <SelectionBar count={selected.size} canDeleteBoth={canDeleteForBoth(chosen)} onDeleteMe={() => void remove('me')} onDeleteBoth={() => void remove('both')} onCancel={stopSelecting} />
       ) : (
-        <Composer chatId={chatId} someoneOffline={someoneOffline} canAttach={!isGroupChat(chatId)} />
+        <Composer chatId={chatId} someoneOffline={someoneOffline} canAttach={!isGroupChat(chatId)} phone={phone} draft={draft} onDraftUsed={onDraftUsed} />
       )}
     </div>
   )

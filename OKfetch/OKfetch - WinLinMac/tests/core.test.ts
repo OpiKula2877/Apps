@@ -7,6 +7,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Core } from '../src/core/controller'
 import { MAX_ATTEMPTS } from '../src/core/security/rateLimit'
 import { contactChatId, groupChatId } from '../src/shared/model'
+import { webSocketFactory } from '../src/core/network/relay/webSocket'
+import { randomBytes } from '../src/core/sodium'
+import { startFakeRelay } from './helpers/fakeRelay'
 
 type Testnet = Awaited<ReturnType<typeof createTestnet>>
 
@@ -238,4 +241,42 @@ describe('core', () => {
     a.contacts.unblock(b.me)
     await until(() => a.net.isOnline(b.me), 30000)
   })
+
+  it('works through the relay when the DHT cannot connect two devices (both behind random-port NATs)', async () => {
+    const relayServer = await startFakeRelay()
+    const otherNet = await createTestnet(3)
+    try {
+      const relay = { urls: [relayServer.url], socket: webSocketFactory, afterMs: 300, reconnectMs: 100 }
+      const phone = await Core.open({ root: dir(), bootstrap: net.bootstrap, kdf: FAST, retryMs: 400, relay })
+      const desktop = await Core.open({ root: dir(), bootstrap: otherNet.bootstrap, kdf: FAST, retryMs: 400, relay })
+      cores.push(phone, desktop)
+      await desktop.contacts.setPassword('pc-heslo')
+      expect(await phone.contacts.add(desktop.me, 'pc-heslo', 'PC')).toEqual({ ok: true })
+      await until(() => desktop.contacts.incoming().some((r) => r.pub === phone.me), 30000)
+      expect(desktop.contacts.accept(phone.me, 'Telefon')).toBe(true)
+      await until(() => phone.contacts.list().some((c) => c.pub === desktop.me && c.online), 30000)
+      expect(phone.contacts.list()[0].via).toBe('relay')
+
+      const enc = contactChatId(desktop.me, 'enc')
+      expect((await phone.messages.send(enc, '<p>přes relay</p>')).ok).toBe(true)
+      await until(() => desktop.messages.list(contactChatId(phone.me, 'enc')).some((m) => m.html === '<p>přes relay</p>'))
+      await until(() => phone.messages.list(enc)[0].status === 'delivered')
+
+      const source = join(dir(), 'fotka.bin')
+      const bytes = randomBytes(200_000)
+      writeFileSync(source, bytes)
+      const sent = await phone.transfers.sendFile(enc, source)
+      expect(sent.ok).toBe(true)
+      const fileId = (sent as { id: string }).id
+      const chatOnDesktop = contactChatId(phone.me, 'enc')
+      await until(() => desktop.messages.list(chatOnDesktop).some((m) => m.id === fileId))
+      expect(desktop.transfers.accept(chatOnDesktop, fileId)).toBe(true)
+      await until(() => desktop.messages.list(chatOnDesktop).some((m) => m.id === fileId && m.file?.state === 'done'), 30000)
+      const rel = desktop.messages.list(chatOnDesktop).find((m) => m.id === fileId)!.file!.rel!
+      expect(Buffer.compare(readFileSync(join(desktop.filesRoot, ...rel.split('/'))), bytes)).toBe(0)
+    } finally {
+      await otherNet.destroy()
+      await relayServer.close()
+    }
+  }, 90_000)
 })

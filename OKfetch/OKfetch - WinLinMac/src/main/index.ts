@@ -4,6 +4,8 @@ import { cpSync, existsSync, readdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import icon from '../../resources/icon.png?asset'
 import { Core, type CoreEvent } from '../core/controller'
+import { relayChanged, relayFromSettings } from '../core/network/relay/config'
+import { webSocketFactory } from '../core/network/relay/webSocket'
 import { DEFAULT_KDF } from '../core/encryption/passwordProof'
 import type { KeyProtector } from '../core/state'
 import { isWritable } from '../core/storage/paths'
@@ -77,6 +79,13 @@ function onCoreEvent(event: CoreEvent): void {
   }
 }
 
+/** Fallback through public relays; OKFETCH_RELAY=off (tests on a local DHT) or OKFETCH_RELAY_URLS override it. */
+function relayConfig() {
+  if (process.env.OKFETCH_RELAY === 'off') return null
+  const urls = process.env.OKFETCH_RELAY_URLS?.split(',').map((u) => u.trim()).filter(Boolean)
+  return relayFromSettings(urls ? { ...settings, relay_fallback: true, relay_urls: urls } : settings, webSocketFactory)
+}
+
 async function startCore(): Promise<void> {
   const root = storageRoot(settings)
   if (!isWritable(root)) {
@@ -88,6 +97,7 @@ async function startCore(): Promise<void> {
       root,
       protector,
       bootstrap: bootstrapFromEnv(),
+      relay: relayConfig(),
       kdf: process.env.OKFETCH_FAST_KDF ? { memoryKib: 1024, iterations: 1, lanes: 1 } : DEFAULT_KDF
     })
   } catch (error) {
@@ -142,6 +152,7 @@ const host: Host = {
     settings = { ...settings, ...patch }
     saveSettings(settings)
     applyWindowSettings(previous)
+    if (relayChanged(previous, settings)) core?.setRelay(relayConfig())
     return settings
   },
   async pickFolder() {

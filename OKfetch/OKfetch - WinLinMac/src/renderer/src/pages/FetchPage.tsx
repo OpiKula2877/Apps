@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { groupChatId, parseChatId, type ContactView, type GroupView } from '../../../shared/model'
+import { parseQr } from '../../../shared/qr'
 import { api } from '../api'
 import { Icon } from '../components/Icon'
 import { useApp } from '../context'
@@ -8,34 +9,56 @@ import { AddContactDialog } from '../dialogs/AddContactDialog'
 import { CreateGroupDialog } from '../dialogs/CreateGroupDialog'
 import { GroupSettingsDialog } from '../dialogs/GroupSettingsDialog'
 import { PromptDialog } from '../dialogs/PromptDialog'
+import { ShareDialog, type SharedItem } from '../dialogs/ShareDialog'
 import { VerifyContactDialog } from '../dialogs/VerifyContactDialog'
 import { ChatTabs, type TabInfo } from '../fetch/ChatTabs'
 import { ChatView } from '../fetch/ChatView'
 import { ContactList } from '../fetch/ContactList'
 import { RequestsPanel } from '../fetch/RequestsPanel'
+import { Okfetch } from '../mobile/native'
+import { isAndroid, useBack, usePhone } from '../mobile/phone'
 import { toAvatarPng } from '../util/image'
 
 type Dialog =
-  | { name: 'add' }
+  | { name: 'add'; id?: string; contactName?: string }
   | { name: 'group' }
   | { name: 'group_settings'; group: GroupView }
   | { name: 'verify'; contact: ContactView }
   | { name: 'rename'; contact: ContactView }
+  | { name: 'share'; item: SharedItem }
 
 export function FetchPage({ visible }: { visible: boolean }) {
   const { t, confirm, notify } = useApp()
   const data = useData()
+  const phone = usePhone()
   const [openChats, setOpenChats] = useState<string[]>([])
   const [active, setActive] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [dialog, setDialog] = useState<Dialog | null>(null)
+  const [draft, setDraft] = useState<{ chatId: string; text: string } | null>(null)
   const iconTarget = useRef<ContactView | null>(null)
   const iconInput = useRef<HTMLInputElement>(null)
 
-  const openChat = (chatId: string): void => {
-    setOpenChats((current) => (current.includes(chatId) ? current : [...current, chatId]))
-    setActive(chatId)
+  const openChat = useCallback(
+    (chatId: string): void => {
+      // The phone shows one chat at a time, full screen.
+      setOpenChats((current) => (phone ? [chatId] : current.includes(chatId) ? current : [...current, chatId]))
+      setActive(chatId)
+    },
+    [phone]
+  )
+
+  const closeActive = (): void => {
+    setOpenChats([])
+    setActive(null)
   }
+  useBack(phone && visible && active !== null, closeActive)
+
+  // The "?" button would cover the send button in a full-screen chat.
+  const chatOnScreen = phone && visible && active !== null
+  useEffect(() => {
+    document.body.dataset.chatOpen = String(chatOnScreen)
+  }, [chatOnScreen])
 
   // A notification click asks to open a chat.
   useEffect(() => {
@@ -43,7 +66,35 @@ export function FetchPage({ visible }: { visible: boolean }) {
       openChat(data.openChatRequest)
       data.clearOpenChatRequest()
     }
-  }, [data.openChatRequest, data])
+  }, [data.openChatRequest, data, openChat])
+
+  // Android: what the app was opened for (notification, "Share to OKfetch", okfetch: link from a QR code).
+  useEffect(() => {
+    if (!isAndroid()) return
+    const take = async (): Promise<void> => {
+      const { items } = await Okfetch.takeLaunch().catch(() => ({ items: [] }))
+      for (const item of items) {
+        if (item.type === 'open-chat') openChat(item.chatId)
+        else if (item.type === 'add-contact') {
+          const qr = parseQr(item.text)
+          if (qr) setDialog({ name: 'add', id: qr.id, contactName: qr.name })
+          else notify(t('qr.invalid'), true)
+        } else if (item.type === 'share') setDialog({ name: 'share', item })
+      }
+    }
+    void take()
+    let disposed = false
+    let remove: (() => void) | undefined
+    void Okfetch.addListener('launch', () => void take()).then((handle) => {
+      // Cleaned up before the listener was in place: drop it right away.
+      if (disposed) void handle.remove()
+      else remove = () => void handle.remove()
+    })
+    return () => {
+      disposed = true
+      remove?.()
+    }
+  }, [openChat, notify, t])
 
   // Tabs of contacts or groups that no longer exist are closed.
   useEffect(() => {
@@ -109,9 +160,22 @@ export function FetchPage({ visible }: { visible: boolean }) {
     if (ok) void api.leaveGroup(group.id)
   }
 
+  /** "Share to OKfetch": files become offers in the chosen chat, text waits in its composer. */
+  const shareTo = async (chatId: string, item: SharedItem): Promise<void> => {
+    setDialog(null)
+    openChat(chatId)
+    let failed = 0
+    for (const file of item.files) {
+      const result = await api.sendPrepared(chatId, file.path)
+      if (!result.ok) failed++
+    }
+    if (failed) notify(t('share.failed', { n: failed }), true)
+    if (item.text) setDraft({ chatId, text: item.text })
+  }
+
   return (
     <div className={`page fetch-page ${visible ? '' : 'hidden'}`}>
-      <div className="split">
+      <div className={`split ${phone ? (active ? 'phone-chat' : 'phone-list') : ''}`}>
         <aside className="side">
           <div className="row">
             <button type="button" className="primary grow" onClick={() => setDialog({ name: 'add' })}>
@@ -146,17 +210,26 @@ export function FetchPage({ visible }: { visible: boolean }) {
           </div>
         </aside>
         <section className="main-panel chat-panel">
-          <ChatTabs tabs={tabs} active={active} onSelect={setActive} onClose={closeChat} onCloseAll={() => { setOpenChats([]); setActive(null) }} />
+          {!phone && <ChatTabs tabs={tabs} active={active} onSelect={setActive} onClose={closeChat} onCloseAll={() => { setOpenChats([]); setActive(null) }} />}
           {openChats.length === 0 && <div className="empty muted">{t('chat.none_open')}</div>}
           {openChats.map((chatId) => (
             <div key={chatId} className={`chat-slot ${chatId === active ? '' : 'hidden'}`}>
-              <ChatView chatId={chatId} active={visible && chatId === active} />
+              <ChatView
+                chatId={chatId}
+                active={visible && chatId === active}
+                onBack={phone ? closeActive : undefined}
+                draft={draft?.chatId === chatId ? draft.text : undefined}
+                onDraftUsed={() => setDraft(null)}
+              />
             </div>
           ))}
         </section>
       </div>
       <input ref={iconInput} type="file" accept="image/png,image/jpeg,image/x-icon,image/vnd.microsoft.icon,.ico" hidden onChange={(e) => { void onIconPicked(e.target.files?.[0]); e.target.value = '' }} />
-      {dialog?.name === 'add' && <AddContactDialog onClose={() => setDialog(null)} />}
+      {dialog?.name === 'add' && <AddContactDialog initialId={dialog.id} initialName={dialog.contactName} canScan={isAndroid()} onClose={() => setDialog(null)} />}
+      {dialog?.name === 'share' && (
+        <ShareDialog item={dialog.item} contacts={data.contacts} groups={data.groups} onClose={() => setDialog(null)} onPick={(chatId) => void shareTo(chatId, dialog.item)} />
+      )}
       {dialog?.name === 'group' && (
         <CreateGroupDialog
           contacts={data.contacts}
@@ -184,4 +257,3 @@ export function FetchPage({ visible }: { visible: boolean }) {
     </div>
   )
 }
-

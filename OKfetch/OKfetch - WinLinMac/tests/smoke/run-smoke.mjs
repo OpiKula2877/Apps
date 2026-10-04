@@ -36,6 +36,7 @@ async function launch(name, extraEnv = {}) {
       OKFETCH_CONFIG_DIR: join(work, name, 'cfg'),
       OKFETCH_BOOTSTRAP: bootstrap,
       OKFETCH_FAST_KDF: '1',
+      OKFETCH_RELAY: 'off',
       ...extraEnv
     }
   })
@@ -161,6 +162,14 @@ try {
 } catch (error) {
   console.error(error)
   process.exitCode = 1
+  // What each window showed when it failed.
+  for (const [i, app] of apps.entries()) {
+    const page = await app.firstWindow().catch(() => null)
+    if (!page) continue
+    await page.screenshot({ path: join(shots, `failed-${i}.png`), timeout: 5000 }).catch(() => undefined)
+    console.error(`--- window ${i}:`, (await page.locator('.modal').innerText({ timeout: 1000 }).catch(() => '(no dialog)')).slice(0, 400))
+  }
+  console.error(`screenshots in ${shots}`)
 } finally {
   await Promise.all(apps.map((app) => app.close().catch(() => undefined)))
   await testnet.destroy()

@@ -3,11 +3,13 @@ import { resolveColors } from '../../../shared/theme'
 import { api } from '../api'
 import { Modal } from '../components/Modal'
 import { useApp } from '../context'
+import { buildAndroidHelp } from './helpAndroid'
 import { OS_NAMES, OS_ORDER, buildHelp, type OsKey } from './helpContent'
 
 export function HelpDialog({ onClose }: { onClose: () => void }) {
   const { t, settings } = useApp()
-  const [os, setOs] = useState<OsKey>(api.platform)
+  const android = api.platform === 'android'
+  const [os, setOs] = useState<OsKey>(android ? 'windows' : (api.platform as OsKey))
   return (
     <Modal
       title={t('help.title')}
@@ -21,14 +23,21 @@ export function HelpDialog({ onClose }: { onClose: () => void }) {
         </button>
       }
     >
-      <div className="tabs" role="tablist">
-        {OS_ORDER.map((key) => (
-          <button key={key} type="button" role="tab" aria-selected={os === key} className={`tab ${os === key ? 'checked' : ''}`} onClick={() => setOs(key)}>
-            {OS_NAMES[key]}
-          </button>
-        ))}
-      </div>
-      <div className="help tab-panel" dangerouslySetInnerHTML={{ __html: buildHelp(settings.language, os, resolveColors(settings)) }} />
+      {android ? (
+        // The APK gets only the Android guide (no Windows / Linux / macOS tabs).
+        <div className="help tab-panel" dangerouslySetInnerHTML={{ __html: buildAndroidHelp(settings.language, resolveColors(settings)) }} />
+      ) : (
+        <>
+          <div className="tabs" role="tablist">
+            {OS_ORDER.map((key) => (
+              <button key={key} type="button" role="tab" aria-selected={os === key} className={`tab ${os === key ? 'checked' : ''}`} onClick={() => setOs(key)}>
+                {OS_NAMES[key]}
+              </button>
+            ))}
+          </div>
+          <div className="help tab-panel" dangerouslySetInnerHTML={{ __html: buildHelp(settings.language, os, resolveColors(settings)) }} />
+        </>
+      )}
     </Modal>
   )
 }
