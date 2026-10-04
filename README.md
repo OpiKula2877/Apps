@@ -1,6 +1,6 @@
 # Apps
 
-Aplikace vytvořené pomocí Claude Code.
+Aplikace vytvořené pomocí Claude Code. Stránka ke stažení: [apps.opikula.dev](https://apps.opikula.dev)
 
 ## 1. OKpass
 

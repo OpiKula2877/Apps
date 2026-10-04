@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OKfetch a OKpass – stažení</title>
+<meta name="description" content="OKfetch (chat bez serveru) a OKpass (šifrovaný trezor na hesla a poznámky) pro Windows, Linux, macOS a Android. Zdarma, s otevřeným zdrojovým kódem.">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#1F0508">
+<link rel="icon" href="assets/img/icon.png">
+<style>
+@font-face {
+  font-family: "Cascadia Code";
+  src: url("OKfetch/OKfetch%20-%20WinLinMac/src/renderer/src/assets/fonts/CascadiaCode.ttf") format("truetype");
+  font-weight: 200 700;
+  font-display: swap;
+}
+
+/* Colours of the "OpiKula style" theme in both apps. */
+:root {
+  --bg: #0E0A0A;
+  --surface: #170D0E;
+  --bar: #1F0508;
+  --input: #1E1112;
+  --border: #4A1218;
+  --text: #F2E6E6;
+  --muted: #A88A8C;
+  --accent: #C8102E;
+  --accent-hover: #DE1A3A;
+  --online: #4CC77A;
+  --radius: 6px;
+  --wrap: 1120px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.65 "Cascadia Code", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-underline-offset: 3px; text-decoration-color: var(--border); }
+a:hover { text-decoration-color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code, kbd { font: inherit; }
+img { display: block; max-width: 100%; height: auto; }
+.wrap { max-width: var(--wrap); margin-inline: auto; padding-inline: 24px; }
+
+/* Header: the same bar the apps have. */
+.topbar { background: var(--bar); border-bottom: 1px solid var(--border); }
+.topbar .wrap { display: flex; align-items: center; gap: 28px; min-height: 56px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; }
+.brand img { width: 22px; height: 22px; border-radius: 4px; }
+.topbar nav { display: flex; gap: 22px; margin-left: auto; font-size: 14px; }
+.topbar nav a { color: var(--muted); text-decoration: none; padding: 16px 0 14px; border-bottom: 2px solid transparent; }
+.topbar nav a:hover { color: var(--text); border-bottom-color: var(--accent); }
+
+.intro { padding-block: 64px 24px; }
+.intro h1 { font-size: 40px; line-height: 1.15; font-weight: 700; margin: 0 0 16px; letter-spacing: -0.01em; max-width: 22ch; }
+.intro p { color: var(--muted); max-width: 64ch; margin: 0; }
+
+/* One app. */
+.app { padding-block: 56px 64px; border-top: 1px solid var(--border); scroll-margin-top: 8px; }
+.intro + .app { border-top: 0; }
+.app-head { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; align-items: start; }
+.app h2 { font-size: 32px; line-height: 1.2; margin: 0 0 12px; display: flex; align-items: center; gap: 12px; }
+.app h2 img { width: 32px; height: 32px; border-radius: 6px; }
+.lede { margin: 0 0 28px; max-width: 46ch; }
+
+/* PC / Telefon switch: the tab underline from the apps. */
+.platforms { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+.platforms button {
+  font: inherit; font-weight: 700; color: var(--muted); background: none; border: 0;
+  padding: 10px 18px 12px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.platforms button:hover { color: var(--text); }
+.platforms button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+
+.download { display: inline-flex; align-items: center; gap: 12px; padding: 14px 22px; border: 0; border-radius: var(--radius);
+  background: var(--accent); color: #fff; font: inherit; font-weight: 700; font-size: 16px; text-decoration: none; cursor: pointer; }
+.download:hover { background: var(--accent-hover); }
+.download:disabled { cursor: progress; opacity: 0.85; }
+.download svg { width: 20px; height: 20px; flex: none; }
+.download-meta { color: var(--muted); font-size: 13px; margin: 12px 0 0; }
+.download-error { color: #FF6B7A; font-size: 13px; margin: 12px 0 0; max-width: 52ch; }
+.alt { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+
+/* Screenshots: a window for PC, a phone for the phone. */
+.shot { margin: 0; }
+.window { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); box-shadow: 0 24px 60px -30px #000; }
+.window-bar { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; background: var(--bar);
+  border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 700; }
+.window-bar img { width: 16px; height: 16px; border-radius: 3px; }
+.window-bar span { margin-left: auto; color: var(--muted); letter-spacing: 0.4em; font-weight: 400; }
+.phones { display: flex; gap: 20px; justify-content: center; align-items: flex-start; }
+.phone { width: min(260px, 46%); border: 7px solid var(--bar); outline: 1px solid var(--border); border-radius: 30px; overflow: hidden; background: var(--bg); }
+.phone + .phone { margin-top: 48px; }
+.shot .caption { color: var(--muted); font-size: 13px; margin-top: 14px; }
+.swap { animation: swap 0.25s ease-out; }
+@keyframes swap { from { opacity: 0; transform: translateY(6px); } }
+
+/* Features, requirements, steps. */
+.app-body { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; margin-top: 56px; }
+.app h3 { font-size: 16px; margin: 0 0 14px; }
+.features { list-style: none; margin: 0; padding: 0; }
+.features li { padding: 10px 0 10px 22px; border-top: 1px solid var(--border); position: relative; }
+.features li::before { content: ""; position: absolute; left: 2px; top: 19px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.features li:last-child { border-bottom: 1px solid var(--border); }
+.needs { margin: 0 0 32px; padding: 0 0 0 18px; }
+.needs li { margin: 4px 0; }
+.steps { counter-reset: step; list-style: none; margin: 0; padding: 0; }
+.steps > li { counter-increment: step; position: relative; padding: 0 0 22px 48px; }
+.steps > li::before {
+  content: counter(step); position: absolute; left: 0; top: -2px; width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--surface); display: grid; place-items: center; font-weight: 700; font-size: 14px;
+}
+.steps > li:not(:last-child)::after { content: ""; position: absolute; left: 15px; top: 32px; bottom: 4px; width: 1px; background: var(--border); }
+.steps p { margin: 0; }
+.steps .muted, .muted { color: var(--muted); }
+
+.cmd { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; padding: 8px 8px 8px 14px; background: var(--input);
+  border: 1px solid var(--border); border-radius: var(--radius); overflow-x: auto; }
+.cmd code { white-space: pre; flex: 1; }
+.cmd code::before { content: "> "; color: var(--muted); }
+.copy { flex: none; font: inherit; font-size: 12px; color: var(--muted); background: none; border: 1px solid var(--border);
+  border-radius: 4px; padding: 3px 8px; cursor: pointer; }
+.copy:hover { color: var(--text); border-color: var(--muted); }
+
+.note { margin-top: 28px; padding: 14px 16px; border-left: 2px solid var(--accent); background: var(--surface); font-size: 14px; }
+.note p { margin: 0; }
+.note p + p { margin-top: 8px; }
+
+footer { border-top: 1px solid var(--border); background: var(--bar); color: var(--muted); font-size: 13px; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22px; }
+
+[hidden] { display: none !important; }
+
+@media (max-width: 860px) {
+  .intro { padding-block-start: 40px; }
+  .intro h1 { font-size: 30px; }
+  .app { padding-block: 40px 48px; }
+  .app-head, .app-body { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .app-body { margin-top: 40px; }
+  .topbar nav { gap: 16px; }
+}
+@media (max-width: 520px) {
+  .wrap { padding-inline: 16px; }
+  body { font-size: 14px; }
+  .brand span { display: none; }
+  .download { width: 100%; justify-content: center; }
+  .phone + .phone { margin-top: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .swap { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#"><img src="assets/img/icon.png" alt=""><span>OpiKula Apps</span></a>
+    <nav aria-label="Aplikace">
+      <a href="#okfetch">OKfetch</a>
+      <a href="#okpass">OKpass</a>
+      <a href="https://github.com/OpiKula2877/Apps">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="intro wrap">
+    <h1>Chat bez serveru a trezor na hesla</h1>
+    <p>Dvě aplikace pro Windows, Linux, macOS a Android. Zdarma, bez reklam a s otevřeným zdrojovým kódem. Vyberte aplikaci, zvolte PC nebo telefon a stáhněte si ji.</p>
+  </section>
+
+  <!-- OKfetch -->
+  <section class="app wrap" id="okfetch" data-app>
+    <div class="app-head">
+      <div>
+        <h2><img src="assets/img/icon.png" alt="">OKfetch</h2>
+        <p class="lede">Zprávy, soubory a skupiny posílané přímo mezi zařízeními. Nepotřebuje server ani účet, kontakt přidáte identifikátorem a heslem.</p>
+
+        <div class="platforms" role="tablist" aria-label="Platforma OKfetch">
+          <button role="tab" id="okfetch-tab-pc" aria-controls="okfetch-pc" aria-selected="true" data-platform="pc">PC</button>
+          <button role="tab" id="okfetch-tab-phone" aria-controls="okfetch-phone" aria-selected="false" data-platform="phone" tabindex="-1">Telefon</button>
+        </div>
+
+        <div data-for="pc" id="okfetch-pc" role="tabpanel" aria-labelledby="okfetch-tab-pc">
+          <button class="download" type="button" data-zip="OKfetch/OKfetch - WinLinMac" data-zip-name="OKfetch-WinLinMac.zip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            <span>Stáhnout pro PC (ZIP)</span>
+          </button>
+          <p class="download-meta">Zdrojový kód pro Windows, Linux a macOS. Spustíte ho přes Node.js, postup je níže.</p>
+          <p class="download-error" hidden></p>
+        </div>
+        <div data-for="phone" id="okfetch-phone" role="tabpanel" aria-labelledby="okfetch-tab-phone" hidden>
+          <a class="download" href="OKfetch/OKfetch%20-%20Android/OKfetch.apk" download>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            <span>Stáhnout OKfetch.apk</span>
+          </a>
+          <p class="download-meta">Android 10 a novější, 66 MB.</p>
+        </div>
+      </div>
+
+      <figure class="shot">
+        <div data-for="pc">
+          <div class="window">
+            <div class="window-bar"><img src="assets/img/icon.png" alt="">OKfetch<span aria-hidden="true">– □ ×</span></div>
+            <img src="assets/img/okfetch-pc.webp" width="1180" height="720" alt="OKfetch na počítači: seznam kontaktů a skupin vlevo, šifrovaný chat s Alenou vpravo">
+          </div>
+          <p class="caption">Šifrovaný chat, čekající žádost o kontakt a skupina.</p>
+        </div>
+        <div data-for="phone" hidden>
+          <div class="phones">
+            <div class="phone"><img src="assets/img/okfetch-phone.webp" width="540" height="1169" alt="OKfetch na telefonu: šifrovaný chat" loading="lazy"></div>
+            <div class="phone"><img src="assets/img/okfetch-qr.webp" width="540" height="1169" alt="OKfetch na telefonu: profil s QR kódem identifikátoru" loading="lazy"></div>
+          </div>
+          <p class="caption">Chat a profil s QR kódem, který druhý telefon naskenuje.</p>
+        </div>
+      </figure>
+    </div>
+
+    <div class="app-body">
+      <div>
+        <h3>Co umí</h3>
+        <ul class="features">
+          <li>Každý kontakt má dva chaty: šifrovaný a nešifrovaný. Šifrované zprávy jsou zašifrované i na disku.</li>
+          <li>Posílání souborů s kontrolou celistvosti. Obrázky a GIF se ukážou přímo v chatu.</li>
+          <li>Skupiny, zprávy pro offline kontakty, potvrzení doručení a přečtení.</li>
+          <li>Funguje na Wi-Fi, ethernetu i mobilních datech. Když přímé spojení nejde, zprávy projdou šifrovaně přes veřejné relay servery.</li>
+          <li>Ověřovací kód potvrdí, že mezi vámi a kontaktem nikdo není.</li>
+          <li>Na telefonu: odemykání otiskem prstu, odpověď z notifikace, sdílení z jiných aplikací a záloha.</li>
+        </ul>
+      </div>
+
+      <div data-for="pc">
+        <h3>Co potřebujete</h3>
+        <ul class="needs">
+          <li>Windows 10 nebo 11, Linux nebo macOS</li>
+          <li><a href="https://nodejs.org">Node.js</a> 20 nebo novější (verze LTS)</li>
+          <li>Připojení k internetu, žádné porty se otevírat nemusí</li>
+        </ul>
+        <h3>Instalace</h3>
+        <ol class="steps">
+          <li><p>Stáhněte ZIP a rozbalte ho. Vznikne složka <code>OKfetch - WinLinMac</code>.</p></li>
+          <li><p>Nainstalujte <a href="https://nodejs.org">Node.js</a>. Stačí výchozí volby instalátoru.</p></li>
+          <li><p>Otevřete terminál ve složce <code>OKfetch - WinLinMac</code> a nainstalujte závislosti:</p>
+            <div class="cmd"><code>npm install</code><button class="copy" type="button">Kopírovat</button></div></li>
+          <li><p>Spusťte aplikaci:</p>
+            <div class="cmd"><code>npm run dev</code><button class="copy" type="button">Kopírovat</button></div></li>
+          <li><p>Chcete ji mít nainstalovanou jako běžný program? Sestavte si instalátor. Najdete ho pak ve složce <code>dist</code>.</p>
+            <div class="cmd"><code>npm run dist:win</code><button class="copy" type="button">Kopírovat</button></div>
+            <p class="muted">Na Linuxu <code>npm run dist:linux</code>, na Macu <code>npm run dist:mac</code>.</p></li>
+        </ol>
+        <div class="note">
+          <p>Instalátor není podepsaný certifikátem vydavatele. Když Windows zobrazí upozornění, klikněte na Další informace a pak na Přesto spustit.</p>
+          <p>Aby se dva lidé spojili přes mobilní data, potřebují oba aktuální verzi.</p>
+        </div>
+      </div>
+
+      <div data-for="phone" hidden>
+        <h3>Co potřebujete</h3>
+        <ul class="needs">
+          <li>Telefon s Androidem 10 nebo novějším</li>
+          <li>Povolenou instalaci aplikací z neznámých zdrojů</li>
+        </ul>
+        <h3>Instalace</h3>
+        <ol class="steps">
+          <li><p>Stáhněte <code>OKfetch.apk</code> přímo v telefonu, nebo ho do telefonu zkopírujte.</p></li>
+          <li><p>Otevřete stažený soubor. Telefon se zeptá, jestli smí prohlížeč nebo správce souborů instalovat aplikace. Povolte to.</p></li>
+          <li><p>Když Play Protect varuje před neznámou aplikací, zvolte Další podrobnosti a Přesto nainstalovat.</p></li>
+          <li><p>Spusťte OKfetch a povolte notifikace, aby vám chodily zprávy.</p></li>
+        </ol>
+        <div class="note">
+          <p>Novou verzi nainstalujte přes starou, data zůstanou. Data jsou jen v telefonu, takže si v Nastavení dělejte zálohu.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- OKpass -->
+  <section class="app wrap" id="okpass" data-app>
+    <div class="app-head">
+      <div>
+        <h2><img src="assets/img/icon.png" alt="">OKpass</h2>
+        <p class="lede">Šifrovaný správce hesel a poznámek. Trezor leží na vašem Google Disku a šifruje se na zařízení, ještě než se nahraje.</p>
+
+        <div class="platforms" role="tablist" aria-label="Platforma OKpass">
+          <button role="tab" id="okpass-tab-pc" aria-controls="okpass-pc" aria-selected="true" data-platform="pc">PC</button>
+          <button role="tab" id="okpass-tab-phone" aria-controls="okpass-phone" aria-selected="false" data-platform="phone" tabindex="-1">Telefon</button>
+        </div>
+
+        <div data-for="pc" id="okpass-pc" role="tabpanel" aria-labelledby="okpass-tab-pc">
+          <button class="download" type="button" data-zip="OKpass/OKpass - WinLinMac" data-zip-name="OKpass-WinLinMac.zip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            <span>Stáhnout pro PC (ZIP)</span>
+          </button>
+          <p class="download-meta">Zdrojový kód pro Windows, Linux a macOS. Spustíte ho přes Node.js, postup je níže.</p>
+          <p class="download-error" hidden></p>
+        </div>
+        <div data-for="phone" id="okpass-phone" role="tabpanel" aria-labelledby="okpass-tab-phone" hidden>
+          <a class="download" href="OKpass/OKpass%20-%20Android/OKpass.apk" download>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            <span>Stáhnout OKpass.apk</span>
+          </a>
+          <p class="download-meta">Android 7.0 a novější se službami Google Play, 4,4 MB.</p>
+        </div>
+      </div>
+
+      <figure class="shot">
+        <div data-for="pc">
+          <div class="window">
+            <div class="window-bar"><img src="assets/img/icon.png" alt="">OKpass<span aria-hidden="true">– □ ×</span></div>
+            <img src="assets/img/okpass-pc.webp" width="1180" height="723" alt="OKpass na počítači: záznam s webem, uživatelským jménem, heslem a vlastním polem PIN" loading="lazy">
+          </div>
+          <p class="caption">Záznam hesla s měřičem síly a vlastním polem.</p>
+        </div>
+        <div data-for="phone" hidden>
+          <div class="phones">
+            <div class="phone"><img src="assets/img/okpass-phone.webp" width="540" height="1127" alt="OKpass na telefonu: detail hesla s generátorem a měřičem síly" loading="lazy"></div>
+          </div>
+          <p class="caption">Detail hesla na telefonu.</p>
+        </div>
+      </figure>
+    </div>
+
+    <div class="app-body">
+      <div>
+        <h3>Co umí</h3>
+        <ul class="features">
+          <li>Textové dokumenty s nadpisy, tučným písmem, kurzívou a odsazením.</li>
+          <li>Hesla s vlastními poli, generátorem a měřičem síly.</li>
+          <li>Ukládá se samo na Google Disk. Bez internetu pracuje s lokální kopií a změny nahraje později.</li>
+          <li>Klamný trezor: druhý klíč otevře jiný obsah. Špatný klíč ukáže věrohodná falešná data.</li>
+          <li>Po nečinnosti se sám zamkne. Na telefonu odemknete otiskem prstu.</li>
+          <li>Stejný trezor a stejný klíč na počítači i telefonu.</li>
+        </ul>
+      </div>
+
+      <div data-for="pc">
+        <h3>Co potřebujete</h3>
+        <ul class="needs">
+          <li>Windows 10 nebo 11, Linux nebo macOS</li>
+          <li><a href="https://nodejs.org">Node.js</a> 20 nebo novější (verze LTS)</li>
+          <li>Google účet a projekt v <a href="https://console.cloud.google.com">Google Cloud Console</a> se zapnutým Google Drive API</li>
+        </ul>
+        <h3>Instalace</h3>
+        <ol class="steps">
+          <li><p>Stáhněte ZIP a rozbalte ho. Vznikne složka <code>OKpass - WinLinMac</code>.</p></li>
+          <li><p>Nainstalujte <a href="https://nodejs.org">Node.js</a>. Stačí výchozí volby instalátoru.</p></li>
+          <li><p>Otevřete terminál ve složce <code>OKpass - WinLinMac</code> a nainstalujte závislosti:</p>
+            <div class="cmd"><code>npm install</code><button class="copy" type="button">Kopírovat</button></div></li>
+          <li><p>Spusťte aplikaci:</p>
+            <div class="cmd"><code>npm run dev</code><button class="copy" type="button">Kopírovat</button></div></li>
+          <li><p>Při prvním spuštění vyberte soubor <code>client_secret.json</code> z Google Cloud Console. Jak ho získat, popisuje <a href="https://github.com/OpiKula2877/Apps/tree/main/OKpass#nastaven%C3%AD-google-p%C5%99ihl%C3%A1%C5%A1en%C3%AD-jednou">návod v README</a>.</p></li>
+          <li><p>Instalátor si sestavíte stejně jako u OKfetch. Najdete ho ve složce <code>dist</code>.</p>
+            <div class="cmd"><code>npm run dist:win</code><button class="copy" type="button">Kopírovat</button></div></li>
+        </ol>
+        <div class="note">
+          <p>Aplikace vidí jen soubory, které sama vytvořila. Při přihlášení se může objevit hláška, že Google aplikaci neověřil. Pokračujte přes Continue.</p>
+        </div>
+      </div>
+
+      <div data-for="phone" hidden>
+        <h3>Co potřebujete</h3>
+        <ul class="needs">
+          <li>Telefon s Androidem 7.0 nebo novějším a službami Google Play</li>
+          <li>Google účet, ve kterém už je trezor z počítače, nebo nový</li>
+        </ul>
+        <h3>Instalace</h3>
+        <ol class="steps">
+          <li><p>Stáhněte <code>OKpass.apk</code> přímo v telefonu, nebo ho do telefonu zkopírujte.</p></li>
+          <li><p>Otevřete stažený soubor a povolte instalaci z tohoto zdroje.</p></li>
+          <li><p>Klepněte na Instalovat a aplikaci spusťte.</p></li>
+          <li><p>Přihlaste se Google účtem a zadejte klíč trezoru.</p></li>
+        </ol>
+        <div class="note">
+          <p>Telefon i počítač musí mít přihlášení ve stejném Google Cloud projektu, jinak telefon trezor z počítače neuvidí. Postup je v <a href="https://github.com/OpiKula2877/Apps/tree/main/OKpass#nastaven%C3%AD-google-p%C5%99ihl%C3%A1%C5%A1en%C3%AD-jednou">README OKpass</a>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a href="https://github.com/OpiKula2877/Apps">Zdrojový kód na GitHubu</a>
+    <span>Licence MIT</span>
+    <span>Aplikace jsou zdarma a bez reklam.</span>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const REPO = 'OpiKula2877/Apps'
+  const BRANCH = 'main'
+  const prefersPhone = /Android/i.test(navigator.userAgent)
+
+  // PC / Telefon switch of one app: the button, screenshot, requirements and steps follow it.
+  for (const app of document.querySelectorAll('[data-app]')) {
+    const tabs = [...app.querySelectorAll('.platforms [role="tab"]')]
+    const select = (platform, focus, animate) => {
+      for (const tab of tabs) {
+        const on = tab.dataset.platform === platform
+        tab.setAttribute('aria-selected', String(on))
+        tab.tabIndex = on ? 0 : -1
+        if (on && focus) tab.focus()
+      }
+      for (const el of app.querySelectorAll('[data-for]')) {
+        const show = el.dataset.for === platform
+        el.hidden = !show
+        if (show && animate && el.parentElement.classList.contains('shot')) {
+          el.classList.remove('swap')
+          void el.offsetWidth
+          el.classList.add('swap')
+        }
+      }
+    }
+    tabs.forEach((tab, i) => {
+      tab.addEventListener('click', () => select(tab.dataset.platform, false, true))
+      tab.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+        const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length]
+        select(next.dataset.platform, true, true)
+      })
+    })
+    if (prefersPhone) select('phone', false, false)
+  }
+
+  // Copy buttons next to commands.
+  for (const button of document.querySelectorAll('.copy')) {
+    button.addEventListener('click', async () => {
+      const text = button.previousElementSibling.textContent
+      try {
+        await navigator.clipboard.writeText(text)
+        button.textContent = 'Zkopírováno'
+      } catch {
+        button.textContent = 'Nejde kopírovat'
+      }
+      setTimeout(() => (button.textContent = 'Kopírovat'), 1600)
+    })
+  }
+
+  // "Stáhnout pro PC": zips the app folder straight from GitHub, so the download is always the current code.
+  let jszip = null
+  const loadJsZip = () => jszip ??= new Promise((resolve, reject) => {
+    const s = document.createElement('script')
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'
+    s.onload = () => resolve(window.JSZip)
+    s.onerror = () => { jszip = null; reject(new Error('knihovnu pro ZIP se nepodařilo načíst')) }
+    document.head.append(s)
+  })
+  let tree = null
+  const loadTree = async () => {
+    if (tree) return tree
+    const res = await fetch(`https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1`)
+    if (!res.ok) throw new Error(res.status === 403 ? 'GitHub dočasně omezil počet požadavků, zkuste to za hodinu' : `GitHub odpověděl ${res.status}`)
+    tree = (await res.json()).tree
+    return tree
+  }
+
+  for (const button of document.querySelectorAll('[data-zip]')) {
+    const label = button.querySelector('span')
+    const idle = label.textContent
+    const error = button.parentElement.querySelector('.download-error')
+    button.addEventListener('click', async () => {
+      const folder = button.dataset.zip
+      const parent = folder.slice(0, folder.lastIndexOf('/') + 1)
+      button.disabled = true
+      error.hidden = true
+      label.textContent = 'Připravuji ZIP…'
+      try {
+        const [JSZip, entries] = await Promise.all([loadJsZip(), loadTree()])
+        const files = entries.filter((e) => e.type === 'blob' && e.path.startsWith(folder + '/'))
+        const zip = new JSZip()
+        const queue = files.slice()
+        let done = 0
+        const worker = async () => {
+          for (let f = queue.shift(); f; f = queue.shift()) {
+            const url = `https://raw.githubusercontent.com/${REPO}/${BRANCH}/` + f.path.split('/').map(encodeURIComponent).join('/')
+            const res = await fetch(url)
+            if (!res.ok) throw new Error(`soubor ${f.path} se nepodařilo stáhnout`)
+            zip.file(f.path.slice(parent.length), await res.arrayBuffer(), { unixPermissions: f.mode === '100755' ? 0o755 : 0o644 })
+            done++
+            label.textContent = `Připravuji ZIP… ${done} / ${files.length}`
+          }
+        }
+        await Promise.all(Array.from({ length: 8 }, worker))
+        label.textContent = 'Balím…'
+        const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', platform: 'UNIX' })
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = button.dataset.zipName
+        document.body.append(a)
+        a.click()
+        a.remove()
+        setTimeout(() => URL.revokeObjectURL(a.href), 30000)
+        label.textContent = 'Staženo'
+        setTimeout(() => (label.textContent = idle), 2500)
+      } catch (e) {
+        label.textContent = idle
+        const web = `https://github.com/${REPO}/tree/${BRANCH}/` + folder.split('/').map(encodeURIComponent).join('/')
+        error.innerHTML = ''
+        error.append(`ZIP se nepodařilo připravit (${e.message}). Kód stáhnete i přes `)
+        const link = document.createElement('a')
+        link.href = web
+        link.textContent = 'GitHub'
+        error.append(link, ' nebo příkazem git clone https://github.com/' + REPO + '.git')
+        error.hidden = false
+      } finally {
+        button.disabled = false
+      }
+    })
+  }
+})()
+</script>
+</body>
+</html>

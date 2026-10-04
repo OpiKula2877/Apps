@@ -5,6 +5,7 @@ OKfetch je peer-to-peer chat pro šifrované i nešifrované zprávy, soubory a 
 | Složka | Obsah |
 |---|---|
 | `OKfetch - WinLinMac` | zdrojový kód pro počítač i Android (Electron, Capacitor, Bare Kit, React, TypeScript), testy a technický návrh v `docs/DESIGN.md` |
+| `OKfetch - Android` | hotová aplikace pro Android (`OKfetch.apk`) |
 
 ## Funkce
 
@@ -73,7 +74,11 @@ Při prvním spuštění na Windows může Windows Defender Firewall zobrazit ok
 
 ## Instalace: Android
 
-Hotové APK v repozitáři není, sestavíte si ho (zatím jen na Windows):
+1. Stáhněte [`OKfetch.apk`](OKfetch%20-%20Android/OKfetch.apk) do telefonu (Android 10 a novější), nebo ho stáhněte na [apps.opikula.dev](https://apps.opikula.dev).
+2. Otevřete ho a povolte instalaci z neznámých zdrojů.
+3. Klepněte na Instalovat. Novější verzi nainstalujete stejně a data zůstanou.
+
+APK si můžete sestavit i sami (zatím jen na Windows):
 
 ```bash
 cd "Apps/OKfetch/OKfetch - WinLinMac"
@@ -82,7 +87,7 @@ cd mobile-worklet && npm install && cd ..
 npm run apk
 ```
 
-Předtím potřebujete JDK 17+, Android SDK 36, Bare Kit 2.5.5 pro Android a vlastní podpisový klíč. Postup krok za krokem je v [OKfetch - WinLinMac/README.md](OKfetch%20-%20WinLinMac/README.md#android-apk). Výsledek `OKfetch.apk` zkopírujte do telefonu a nainstalujte (povolte instalaci z neznámých zdrojů).
+Předtím potřebujete JDK 17+, Android SDK 36, Bare Kit 2.5.5 pro Android a vlastní podpisový klíč. Postup krok za krokem je v [OKfetch - WinLinMac/README.md](OKfetch%20-%20WinLinMac/README.md#android-apk).
 
 ## První spojení
 
