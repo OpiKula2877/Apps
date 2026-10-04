@@ -62,9 +62,22 @@ img { display: block; max-width: 100%; height: auto; }
 .lang button:hover { color: var(--text); }
 .lang button[aria-pressed="true"] { background: var(--accent); color: #fff; }
 
-.intro { padding-block: 64px 24px; }
-.intro h1 { font-size: 40px; line-height: 1.15; font-weight: 700; margin: 0 0 16px; letter-spacing: -0.01em; max-width: 22ch; }
-.intro p { color: var(--muted); max-width: 64ch; margin: 0; }
+.intro { padding-block: 72px 40px; display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 48px; align-items: end; }
+.intro h1 { position: relative; font-size: 44px; line-height: 1.12; font-weight: 700; margin: 0 0 18px; letter-spacing: -0.01em; max-width: 20ch; }
+.intro p { color: var(--muted); max-width: 60ch; margin: 0; }
+/* The headline decrypts itself: a scrambled copy sits on top of the real text, which stays for screen readers. */
+.intro h1 .ghost { color: transparent; }
+.scramble { position: absolute; inset: 0; }
+.scramble .u { color: var(--accent); }
+.jump { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border); }
+.jump li { border-bottom: 1px solid var(--border); }
+.jump a { display: grid; grid-template-columns: 3ch auto minmax(0, 1fr) auto; gap: 14px; align-items: baseline; padding: 14px 8px; text-decoration: none; }
+.jump a:hover { background: var(--surface); }
+.jump .n { color: var(--accent); font-size: 13px; font-weight: 700; }
+.jump .name { font-weight: 700; }
+.jump .what { color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jump .arr { color: var(--muted); transition: transform 0.2s, color 0.2s; }
+.jump a:hover .arr { color: var(--accent); transform: translateX(4px); }
 
 /* One app. */
 .app { padding-block: 56px 64px; border-top: 1px solid var(--border); scroll-margin-top: 8px; }
@@ -72,7 +85,11 @@ img { display: block; max-width: 100%; height: auto; }
 .app-head { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; align-items: start; }
 .app h2 { font-size: 32px; line-height: 1.2; margin: 0 0 12px; display: flex; align-items: center; gap: 12px; }
 .app h2 img { width: 32px; height: 32px; border-radius: 6px; }
-.lede { margin: 0 0 28px; max-width: 46ch; }
+.lede { margin: 0 0 16px; max-width: 46ch; }
+.eyebrow { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+.eyebrow b { color: var(--accent); }
+.stack { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0 0 28px; padding: 0; }
+.stack li { font-size: 12px; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; }
 
 /* PC / Telefon switch: the tab underline from the apps. */
 .platforms { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
@@ -110,9 +127,38 @@ img { display: block; max-width: 100%; height: auto; }
 .app-body { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; margin-top: 56px; }
 .app h3 { font-size: 16px; margin: 0 0 14px; }
 .features { list-style: none; margin: 0; padding: 0; }
-.features li { padding: 10px 0 10px 22px; border-top: 1px solid var(--border); position: relative; }
-.features li::before { content: ""; position: absolute; left: 2px; top: 19px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.features li { border-top: 1px solid var(--border); }
 .features li:last-child { border-bottom: 1px solid var(--border); }
+.features .plain, .features .feat { position: relative; display: block; padding: 10px 0 10px 22px; }
+.features .feat { transition: background-color 0.2s, color 0.2s; }
+.features .plain::before, .features .feat::before { content: ""; position: absolute; left: 2px; top: 19px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); transition: border-radius 0.2s; }
+/* The row the animation is showing right now. */
+.features .feat.on { background: var(--bar); color: #fff; }
+.features .feat.on::before { border-radius: 1px; animation: beacon 1.2s ease-in-out infinite; }
+@keyframes beacon { 0%, 100% { box-shadow: 0 0 0 0 rgba(200, 16, 46, 0.45); } 50% { box-shadow: 0 0 0 5px rgba(200, 16, 46, 0); } }
+
+/* Pixel animation under the features: a small window with a stage bar and a log line. */
+.demo { margin-top: 28px; }
+.scene { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #140C0D; box-shadow: 0 24px 60px -30px #000; }
+.scene-bar { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 12px; background: var(--bar); border-bottom: 1px solid var(--border); font-size: 13px; }
+.scene-bar img { width: 16px; height: 16px; border-radius: 3px; }
+.scene-stage { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scene-segs { margin-left: auto; display: flex; gap: 3px; flex: none; }
+.scene-segs i { width: 12px; height: 4px; background: #2E1418; transition: background-color 0.3s; }
+.scene-segs i.done { background: #7A1424; }
+.scene-segs i.now { background: var(--accent); }
+.scene-no { flex: none; min-width: 3ch; color: var(--muted); font-size: 12px; text-align: right; }
+.scene canvas { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; }
+/* The log keeps the previous line, dimmed, above the one being typed, like a terminal history. */
+.scene-log { min-height: 80px; padding: 10px 14px; border-top: 1px solid var(--border); background: var(--surface); font-size: 13px; line-height: 1.45; }
+.scene-log p { display: flex; gap: 8px; margin: 0; }
+.scene-log p > span:first-child { color: var(--accent); }
+.scene-log .scene-prev { display: block; min-height: 1.45em; color: var(--muted); opacity: 0.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scene-cur { display: inline-block; width: 7px; height: 14px; margin-left: 2px; vertical-align: -2px; background: var(--accent); animation: blink 1.06s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* Background: a faint grid of dots on a canvas behind everything. */
+.bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
 .needs { margin: 0 0 32px; padding: 0 0 0 18px; }
 .needs li { margin: 4px 0; }
 .steps { counter-reset: step; list-style: none; margin: 0; padding: 0; }
@@ -143,7 +189,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
 [hidden] { display: none !important; }
 
 @media (max-width: 860px) {
-  .intro { padding-block-start: 40px; }
+  .intro { padding-block-start: 40px; grid-template-columns: minmax(0, 1fr); gap: 32px; }
   .intro h1 { font-size: 30px; }
   .app { padding-block: 40px 48px; }
   .app-head, .app-body { grid-template-columns: minmax(0, 1fr); gap: 32px; }
@@ -154,6 +200,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
   .wrap { padding-inline: 16px; }
   body { font-size: 14px; }
   .brand span { display: none; }
+  .jump .what { display: none; }
   .topbar .wrap { gap: 14px; }
   .topbar nav { gap: 12px; font-size: 13px; }
   .download { width: 100%; justify-content: center; }
@@ -161,11 +208,13 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .swap { animation: none; }
+  .swap, .features .feat.on::before, .scene-cur { animation: none; }
+  .jump .arr { transition: none; }
 }
 </style>
 </head>
 <body>
+<canvas class="bg" aria-hidden="true"></canvas>
 
 <header class="topbar">
   <div class="wrap">
@@ -184,16 +233,29 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
 
 <main>
   <section class="intro wrap">
-    <h1 data-i18n="t0">Chat bez serveru a trezor na hesla</h1>
-    <p data-i18n="t1">Dvě aplikace pro Windows, Linux, macOS a Android. Zdarma, bez reklam a s otevřeným zdrojovým kódem. Vyberte aplikaci, zvolte PC nebo telefon a stáhněte si ji.</p>
+    <div>
+      <h1><span data-i18n="t0">Chat bez serveru a trezor na hesla</span></h1>
+      <p data-i18n="t1">Dvě aplikace pro Windows, Linux, macOS a Android. Zdarma, bez reklam a s otevřeným zdrojovým kódem. Vyberte aplikaci, zvolte PC nebo telefon a stáhněte si ji.</p>
+    </div>
+    <ol class="jump">
+      <li><a href="#okfetch"><span class="n">01</span><span class="name">OKfetch</span><span class="what" data-i18n="t67">chat bez serveru</span><span class="arr" aria-hidden="true">→</span></a></li>
+      <li><a href="#okpass"><span class="n">02</span><span class="name">OKpass</span><span class="what" data-i18n="t68">trezor na hesla a poznámky</span><span class="arr" aria-hidden="true">→</span></a></li>
+    </ol>
   </section>
 
   <!-- OKfetch -->
   <section class="app wrap" id="okfetch" data-app>
     <div class="app-head">
       <div>
+        <p class="eyebrow" data-i18n="t65"><b>01</b> / chat bez serveru</p>
         <h2><img src="assets/img/icon.png" alt="">OKfetch</h2>
         <p class="lede" data-i18n="t2">Zprávy, soubory a skupiny posílané přímo mezi zařízeními. Nepotřebuje server ani účet, kontakt přidáte identifikátorem a heslem.</p>
+        <ul class="stack" aria-label="Technologie" data-i18n-aria="Technology">
+          <li>Hyperswarm</li>
+          <li>XChaCha20-Poly1305</li>
+          <li>Ed25519 / X25519</li>
+          <li>Nostr relay</li>
+        </ul>
 
         <div class="platforms" role="tablist" aria-label="Platforma OKfetch" data-i18n-aria="OKfetch platform">
           <button role="tab" id="okfetch-tab-pc" aria-controls="okfetch-pc" aria-selected="true" data-platform="pc">PC</button>
@@ -238,14 +300,22 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
     <div class="app-body">
       <div>
         <h3 data-i18n="t11">Co umí</h3>
+        <!-- data-stages: while the animation shows these stages, the row lights up. -->
         <ul class="features">
-          <li data-i18n="t14">Každý kontakt má dva chaty: šifrovaný a nešifrovaný. Šifrované zprávy jsou zašifrované i na disku.</li>
-          <li data-i18n="t15">Posílání souborů s kontrolou celistvosti. Obrázky a GIF se ukážou přímo v chatu.</li>
-          <li data-i18n="t16">Skupiny, zprávy pro offline kontakty, potvrzení doručení a přečtení.</li>
-          <li data-i18n="t17">Funguje na Wi-Fi, ethernetu i mobilních datech. Když přímé spojení nejde, zprávy projdou šifrovaně přes veřejné relay servery.</li>
-          <li data-i18n="t18">Ověřovací kód potvrdí, že mezi vámi a kontaktem nikdo není.</li>
-          <li data-i18n="t19">Na telefonu: odemykání otiskem prstu, odpověď z notifikace, sdílení z jiných aplikací a záloha.</li>
+          <li><span class="feat" data-stages="1 2" data-i18n="t14">Každý kontakt má dva chaty: šifrovaný a nešifrovaný. Šifrované zprávy jsou zašifrované i na disku.</span></li>
+          <li><span class="plain" data-i18n="t15">Posílání souborů s kontrolou celistvosti. Obrázky a GIF se ukážou přímo v chatu.</span></li>
+          <li><span class="feat" data-stages="3" data-i18n="t16">Skupiny, zprávy pro offline kontakty, potvrzení doručení a přečtení.</span></li>
+          <li><span class="feat" data-stages="0 5" data-i18n="t17">Funguje na Wi-Fi, ethernetu i mobilních datech. Když přímé spojení nejde, zprávy projdou šifrovaně přes veřejné relay servery.</span></li>
+          <li><span class="feat" data-stages="4" data-i18n="t18">Ověřovací kód potvrdí, že mezi vámi a kontaktem nikdo není.</span></li>
+          <li><span class="plain" data-i18n="t19">Na telefonu: odemykání otiskem prstu, odpověď z notifikace, sdílení z jiných aplikací a záloha.</span></li>
         </ul>
+        <div class="demo">
+          <div class="scene" data-scene="okfetch">
+            <div class="scene-bar"><img src="assets/img/icon.png" alt=""><b>OKfetch</b><span class="scene-stage"></span><span class="scene-segs" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="scene-no"></span></div>
+            <canvas role="img" aria-label="Animace: OKfetch najde kontakt v síti DHT a spojí se s ním napřímo. Zpráva se zašifruje už v počítači, po cestě je z ní jen šum a telefon ji rozšifruje. Oba pak porovnají ověřovací kód. Když přímé spojení nejde, odpověď jde šifrovaně přes relay." data-i18n-aria="Animation: OKfetch finds the contact in the DHT and connects to it directly. The message is encrypted on the computer, travels as noise and the phone decrypts it. Both then compare the verification code. When a direct connection is not possible, the reply goes encrypted through a relay."></canvas>
+            <div class="scene-log"><p class="scene-prev" aria-hidden="true"></p><p><span aria-hidden="true">&gt;</span><span><span class="scene-text"></span><span class="scene-cur" aria-hidden="true"></span></span></p></div>
+          </div>
+        </div>
       </div>
 
       <div data-for="pc">
@@ -297,8 +367,14 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
   <section class="app wrap" id="okpass" data-app>
     <div class="app-head">
       <div>
+        <p class="eyebrow" data-i18n="t66"><b>02</b> / trezor na hesla a poznámky</p>
         <h2><img src="assets/img/icon.png" alt="">OKpass</h2>
         <p class="lede" data-i18n="t41">Šifrovaný správce hesel a poznámek. Trezor leží na vašem Google Disku a šifruje se na zařízení, ještě než se nahraje.</p>
+        <ul class="stack" aria-label="Technologie" data-i18n-aria="Technology">
+          <li>Argon2id</li>
+          <li>AES-256-GCM</li>
+          <li data-i18n="t69">Google Disk</li>
+        </ul>
 
         <div class="platforms" role="tablist" aria-label="Platforma OKpass" data-i18n-aria="OKpass platform">
           <button role="tab" id="okpass-tab-pc" aria-controls="okpass-pc" aria-selected="true" data-platform="pc">PC</button>
@@ -343,13 +419,20 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
       <div>
         <h3 data-i18n="t11">Co umí</h3>
         <ul class="features">
-          <li data-i18n="t45">Textové dokumenty s nadpisy, tučným písmem, kurzívou a odsazením.</li>
-          <li data-i18n="t46">Hesla s vlastními poli, generátorem a měřičem síly.</li>
-          <li data-i18n="t47">Ukládá se samo na Google Disk. Bez internetu pracuje s lokální kopií a změny nahraje později.</li>
-          <li data-i18n="t48">Klamný trezor: druhý klíč otevře jiný obsah. Špatný klíč ukáže věrohodná falešná data.</li>
-          <li data-i18n="t49">Po nečinnosti se sám zamkne. Na telefonu odemknete otiskem prstu.</li>
-          <li data-i18n="t50">Stejný trezor a stejný klíč na počítači i telefonu.</li>
+          <li><span class="plain" data-i18n="t45">Textové dokumenty s nadpisy, tučným písmem, kurzívou a odsazením.</span></li>
+          <li><span class="feat" data-stages="1" data-i18n="t46">Hesla s vlastními poli, generátorem a měřičem síly.</span></li>
+          <li><span class="feat" data-stages="0" data-i18n="t47">Ukládá se samo na Google Disk. Bez internetu pracuje s lokální kopií a změny nahraje později.</span></li>
+          <li><span class="feat" data-stages="3 4" data-i18n="t48">Klamný trezor: druhý klíč otevře jiný obsah. Špatný klíč ukáže věrohodná falešná data.</span></li>
+          <li><span class="feat" data-stages="2 5" data-i18n="t49">Po nečinnosti se sám zamkne. Na telefonu odemknete otiskem prstu.</span></li>
+          <li><span class="feat" data-stages="5" data-i18n="t50">Stejný trezor a stejný klíč na počítači i telefonu.</span></li>
         </ul>
+        <div class="demo">
+          <div class="scene" data-scene="okpass">
+            <div class="scene-bar"><img src="assets/img/icon.png" alt=""><b>OKpass</b><span class="scene-stage"></span><span class="scene-segs" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="scene-no"></span></div>
+            <canvas role="img" aria-label="Animace: na Google Disku je trezor jen šifrovaný šum. Správný klíč otevře skutečná hesla a po nečinnosti se trezor sám zamkne. Druhý klíč otevře klamný trezor, špatný klíč ukáže věrohodná falešná data. Na telefonu se stejný trezor odemkne otiskem prstu." data-i18n-aria="Animation: on Google Drive the vault is only encrypted noise. The right key opens the real passwords and the vault locks itself when idle. A second key opens a decoy vault, a wrong key shows believable fake data. On the phone the same vault unlocks with a fingerprint."></canvas>
+            <div class="scene-log"><p class="scene-prev" aria-hidden="true"></p><p><span aria-hidden="true">&gt;</span><span><span class="scene-text"></span><span class="scene-cur" aria-hidden="true"></span></span></p></div>
+          </div>
+        </div>
       </div>
 
       <div data-for="pc">
@@ -477,7 +560,12 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
     "t61": "Source code on GitHub",
     "t62": "MIT License",
     "t63": "The apps are free and without ads.",
-    "t64": "Copy"
+    "t64": "Copy",
+    "t65": "<b>01</b> / chat without a server",
+    "t66": "<b>02</b> / vault for passwords and notes",
+    "t67": "chat without a server",
+    "t68": "vault for passwords and notes",
+    "t69": "Google Drive"
   }
   const MSG = {
     cs: { title: 'OKfetch a OKpass – stažení', copy: 'Kopírovat', copied: 'Zkopírováno', copyFail: 'Nejde kopírovat',
@@ -498,6 +586,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
   for (const el of document.querySelectorAll('[data-i18n-alt]')) ORIG.set(el, el.alt)
   for (const el of document.querySelectorAll('[data-i18n-aria]')) ORIG.set(el, el.getAttribute('aria-label'))
   let lang = 'cs'
+  const langHooks = []
   const msg = (key) => MSG[lang][key]
   const textOf = (el) => (lang === 'en' ? EN[el.dataset.i18n] : ORIG.get(el))
   const setLang = (next) => {
@@ -509,6 +598,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
     for (const el of document.querySelectorAll('[data-i18n-alt]')) el.alt = next === 'en' ? el.dataset.i18nAlt : ORIG.get(el)
     for (const el of document.querySelectorAll('[data-i18n-aria]')) el.setAttribute('aria-label', next === 'en' ? el.dataset.i18nAria : ORIG.get(el))
     for (const b of document.querySelectorAll('.lang button')) b.setAttribute('aria-pressed', String(b.dataset.lang === next))
+    for (const hook of langHooks) hook()
   }
   for (const b of document.querySelectorAll('.lang button')) {
     b.addEventListener('click', () => {
@@ -638,6 +728,848 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
       }
     })
   }
+
+  // ---- Pixel animations under "Co umí" ----
+  // A scene draws into a 128 × 72 buffer of palette indexes that is scaled up by a whole number, so the
+  // pixels stay sharp. Everything on screen is a function of the time t in the loop.
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)')
+  const FONT = {
+    A: '010101111101101', B: '110101110101110', C: '011100100100011', D: '110101101101110', E: '111100110100111',
+    F: '111100110100100', G: '011100101101011', H: '101101111101101', I: '111010010010111', J: '001001001101010',
+    K: '101101110101101', L: '100100100100111', M: '101111111101101', N: '110101101101101', O: '010101101101010',
+    P: '110101110100100', Q: '010101101110011', R: '110101110101101', S: '011100010001110', T: '111010010010010',
+    U: '101101101101111', V: '101101101101010', W: '101101111111101', X: '101101010101101', Y: '101101010010010',
+    Z: '111001010100111', 0: '111101101101111', 1: '010110010010111', 2: '110001010100111', 3: '110001010001110',
+    4: '101101111001001', 5: '111100110001110', 6: '011100111101111', 7: '111001010010010', 8: '111101111101111',
+    9: '111101111001110', '!': '010010010000010', '?': '110001010000010', '.': '000000000000010', ':': '000010000010000',
+    '-': '000000111000000', '#': '101111101111101', '%': '100001010100001', '@': '010101111100011', '*': '000101010101000',
+    '/': '001001010100100', '+': '000010111010000', '=': '000111000111000', ' ': '000000000000000'
+  }
+  const CIPHER = '0123456789ABCDEF#%@*/+=?'
+  const LOCK = ['.xxx.', 'x...x', 'x...x', 'xxxxx', 'xx.xx', 'xxxxx']
+  const LOCK_OPEN = ['.xxx.', 'x...x', 'x....', 'xxxxx', 'xx.xx', 'xxxxx']
+  const CHECK = ['....x', '...x.', 'x.x..', '.x...']
+  const hash = (x, y, k) => {
+    let n = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(k | 0, 1442695041)) | 0
+    n = Math.imul(n ^ (n >>> 13), 1274126177)
+    n ^= n >>> 16
+    return (n >>> 0) / 4294967296
+  }
+  const prog = (t, a, b) => (t <= a ? 0 : t >= b ? 1 : (t - a) / (b - a))
+  const ease = (p) => (p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2)
+  const nearest = (nodes, k) => {
+    const out = []
+    const seen = new Set()
+    nodes.forEach((a, i) => {
+      nodes.map((b, j) => [j, Math.hypot(a[0] - b[0], a[1] - b[1])])
+        .filter((e) => e[0] !== i)
+        .sort((x, y) => x[1] - y[1])
+        .slice(0, k)
+        .forEach(([j]) => {
+          const key = Math.min(i, j) + '-' + Math.max(i, j)
+          if (!seen.has(key)) { seen.add(key); out.push([i, j]) }
+        })
+    })
+    return out
+  }
+
+  class PixelScene {
+    constructor(root, cfg) {
+      Object.assign(this, cfg)
+      this.W = 128
+      this.H = 72
+      this.cv = root.querySelector('canvas')
+      this.ctx = this.cv.getContext('2d')
+      this.ui = {
+        stage: root.querySelector('.scene-stage'),
+        no: root.querySelector('.scene-no'),
+        segs: [...root.querySelectorAll('.scene-segs i')],
+        text: root.querySelector('.scene-text'),
+        prev: root.querySelector('.scene-prev')
+      }
+      this.off = document.createElement('canvas')
+      this.off.width = this.W
+      this.off.height = this.H
+      this.octx = this.off.getContext('2d')
+      this.img = this.octx.createImageData(this.W, this.H)
+      this.px = new Uint32Array(this.img.data.buffer)
+      this.fb = new Uint8Array(this.W * this.H)
+      this.pal = this.hex.map((h) => {
+        const n = parseInt(h.slice(1), 16)
+        return ((255 << 24) | ((n & 255) << 16) | (n & 0xff00) | ((n >> 16) & 255)) >>> 0
+      })
+      this.keep = 1
+      this.clock = 0
+      this.last = 0
+      this.lastQ = -1
+      this.shown = {}
+      this.visible = true
+      this.onStage = null
+      new IntersectionObserver((es) => { for (const e of es) this.visible = e.isIntersecting }).observe(this.cv)
+    }
+
+    start() {
+      const tick = (now) => {
+        requestAnimationFrame(tick)
+        try { this.step(now) } catch (e) { if (!this.failed) { this.failed = true; console.error(e) } }
+      }
+      requestAnimationFrame(tick)
+    }
+
+    step(now) {
+      const dt = this.last ? Math.min(100, now - this.last) : 0
+      this.last = now
+      if (!this.visible && this.lastQ >= 0) return
+      if (this.cv.clientWidth !== this.cw || this.cv.clientHeight !== this.ch) this.fit()
+      this.reduced = reduceMotion.matches
+      let t
+      if (this.reduced) t = this.key[this.rest]
+      else {
+        this.clock += dt
+        t = this.clock % this.total
+      }
+      this.report(t)
+      const q = this.reduced ? t : Math.floor(t / 33) * 33
+      if (q !== this.lastQ || lang !== this.lastLang) {
+        this.lastQ = q
+        this.lastLang = lang
+        this.paint(q)
+      }
+    }
+
+    // Stage bar and the log line under the picture, typed out a few letters at a time.
+    report(t) {
+      let st = 0
+      while (st + 1 < this.stages.length && this.stages[st + 1] <= t) st++
+      let bt = 0
+      while (bt + 1 < this.beats.length && this.beats[bt + 1][0] <= t) bt++
+      const en = lang === 'en', text = this.beats[bt][en ? 2 : 1]
+      const chars = this.reduced ? text.length : Math.min(text.length, Math.max(0, Math.floor((t - this.beats[bt][0]) / 24)))
+      const s = this.shown
+      if (bt !== s.beat || en !== s.en) {
+        const prev = this.beats[(bt + this.beats.length - 1) % this.beats.length]
+        this.ui.prev.textContent = '> ' + prev[en ? 2 : 1]
+      }
+      if (st !== s.stage || en !== s.en) {
+        this.ui.stage.textContent = '· ' + this.names[st][en ? 1 : 0]
+        this.ui.no.textContent = `${st + 1}/${this.stages.length}`
+        this.ui.segs.forEach((seg, i) => { seg.className = i < st ? 'done' : i === st ? 'now' : '' })
+      }
+      if (st !== s.stage || bt !== s.beat || chars !== s.chars || en !== s.en) this.ui.text.textContent = text.slice(0, chars)
+      if (st !== s.stage && this.onStage) this.onStage(st)
+      this.shown = { stage: st, beat: bt, chars, en }
+    }
+
+    fit() {
+      const cv = this.cv, dpr = Math.min(3, devicePixelRatio || 1)
+      this.cw = cv.clientWidth
+      this.ch = cv.clientHeight
+      const w = Math.max(this.W, Math.round(this.cw * dpr)), h = Math.max(this.H, Math.round(this.ch * dpr))
+      if (cv.width !== w) cv.width = w
+      if (cv.height !== h) cv.height = h
+      this.cell = Math.max(1, Math.min(Math.floor(w / this.W), Math.floor(h / this.H)))
+      this.ox = Math.floor((w - this.W * this.cell) / 2)
+      this.oy = Math.floor((h - this.H * this.cell) / 2)
+      this.lastQ = -1
+    }
+
+    blit() {
+      const { fb, px, pal, cv, ctx } = this
+      for (let i = 0; i < fb.length; i++) px[i] = pal[fb[i]]
+      this.octx.putImageData(this.img, 0, 0)
+      ctx.imageSmoothingEnabled = false
+      ctx.fillStyle = this.hex[0]
+      ctx.fillRect(0, 0, cv.width, cv.height)
+      ctx.drawImage(this.off, this.ox, this.oy, this.W * this.cell, this.H * this.cell)
+    }
+
+    word(w) { return Array.isArray(w) ? w[lang === 'en' ? 1 : 0] : w }
+    ciph(i, t) { return CIPHER[Math.floor(hash(i, 31, Math.floor(t / 70)) * CIPHER.length)] }
+
+    pset(x, y, c) {
+      x = Math.round(x)
+      y = Math.round(y)
+      if (x < 0 || y < 0 || x >= this.W || y >= this.H) return
+      if (this.keep < 1 && hash(x, y, 11) >= this.keep) return
+      this.fb[y * this.W + x] = c
+    }
+    rect(x, y, w, h, c) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) this.pset(x + i, y + j, c) }
+    frame(x, y, w, h, c) {
+      for (let i = 0; i < w; i++) { this.pset(x + i, y, c); this.pset(x + i, y + h - 1, c) }
+      for (let j = 1; j < h - 1; j++) { this.pset(x, y + j, c); this.pset(x + w - 1, y + j, c) }
+    }
+    plus(x, y, c) { this.pset(x, y, c); this.pset(x - 1, y, c); this.pset(x + 1, y, c); this.pset(x, y - 1, c); this.pset(x, y + 1, c) }
+    sprite(rows, x, y, c) { rows.forEach((row, j) => { for (let i = 0; i < row.length; i++) if (row[i] === 'x') this.pset(x + i, y + j, c) }) }
+    glyph(ch, x, y, c) {
+      const g = FONT[ch] || FONT[String(ch).toUpperCase()]
+      if (!g) return
+      for (let k = 0; k < 15; k++) if (g.charCodeAt(k) === 49) this.pset(x + (k % 3), y + ((k / 3) | 0), c)
+    }
+    text(s, x, y, c) { for (let i = 0; i < s.length; i++) this.glyph(s[i], x + i * 4, y, c) }
+    line(x0, y0, x1, y1, c, dot) {
+      x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1)
+      const dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1, dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1
+      let err = dx + dy
+      for (let n = 0; n < 400; n++) {
+        if (!dot || n % 2 === 0) this.pset(x0, y0, c)
+        if (x0 === x1 && y0 === y1) break
+        const e2 = 2 * err
+        if (e2 >= dy) { err += dy; x0 += sx }
+        if (e2 <= dx) { err += dx; y0 += sy }
+      }
+    }
+    // A point at fraction p along a polyline, plus the index of the segment it is on.
+    along(pts, p) {
+      const seg = []
+      let len = 0
+      for (let i = 1; i < pts.length; i++) {
+        const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])
+        seg.push(d)
+        len += d
+      }
+      let r = Math.max(0, Math.min(1, p)) * len
+      for (let i = 0; i < seg.length; i++) {
+        if (r <= seg[i] || i === seg.length - 1) {
+          const q = seg[i] > 0 ? Math.min(1, r / seg[i]) : 1
+          return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * q, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * q, i]
+        }
+        r -= seg[i]
+      }
+      return [pts[0][0], pts[0][1], 0]
+    }
+  }
+
+  // OKfetch: a computer on the left, a phone on the right. Find each other in the DHT, connect directly,
+  // send an encrypted message past an eavesdropper, compare the verification code, then reply through a relay.
+  class FetchScene extends PixelScene {
+    constructor(root) {
+      super(root, {
+        total: 17000,
+        stages: [0, 2600, 5200, 7400, 9400, 12000],
+        key: [2450, 4600, 6050, 9150, 11700, 15150],
+        rest: 2,
+        names: [['spojení', 'connect'], ['šifrování', 'encrypt'], ['přenos', 'transfer'], ['doručení', 'delivery'], ['ověření', 'verify'], ['relay', 'relay']],
+        hex: ['#140C0D', '#1E1012', '#2E1418', '#4A1218', '#7A1424', '#C8102E', '#FF5468', '#F2E6E6', '#A88A8C', '#4CC77A', '#221416', '#3A2A2C', '#0B0708'],
+        beats: [
+          [0, 'najde kontakt v síti DHT a spojí se napřímo', 'finds the contact in the DHT, connects directly'],
+          [2600, 'XChaCha20-Poly1305: zašifrováno ještě v počítači', 'XChaCha20-Poly1305: encrypted before it leaves the PC'],
+          [5200, 'po cestě letí jen šum, posluchač nic nevyčte', 'only noise travels, a listener reads nothing'],
+          [7400, 'telefon rozšifruje, ověří celistvost, přečteno ✓✓', 'the phone decrypts, checks integrity, read ✓✓'],
+          [9400, 'ověřovací kód z obou klíčů: shoda = nikdo mezi vámi', 'verification code from both keys: a match = nobody between you'],
+          [12000, 'přímo to nejde? Šifrovaně přes relay (Nostr)', 'no direct way? Encrypted through a relay (Nostr)']
+        ]
+      })
+      this.nodes = [[54, 9], [63, 3], [75, 7], [87, 4], [94, 15], [57, 20], [69, 17], [81, 21], [53, 47], [64, 53], [76, 48], [89, 54], [95, 41], [59, 64], [72, 62], [85, 66]]
+      this.path = [[47, 24], [57, 20], [69, 17], [75, 7], [87, 4], [94, 15], [97, 24]]
+      this.edges = nearest(this.nodes, 2)
+    }
+
+    paint(t) {
+      this.fb.fill(0)
+      this.keep = 1
+      this.drawMesh(t)
+      this.drawLink(t)
+      this.drawRelay(t)
+      this.drawDevices(t)
+      this.drawPC(t)
+      this.drawPhone(t)
+      this.drawPackets(t)
+      this.drawEye(t)
+      this.fade(t)
+      this.blit()
+    }
+
+    // The DHT: the search hops from node to node until it finds the contact.
+    drawMesh(t) {
+      if (t >= 12500) return
+      const N = this.nodes, disc = t < 2600
+      this.keep = t < 450 ? t / 450 : t >= 12000 ? 1 - (t - 12000) / 500 : 1
+      for (const [a, b] of this.edges) this.line(N[a][0], N[a][1], N[b][0], N[b][1], disc ? 2 : 1, true)
+      for (const n of N) this.pset(n[0], n[1], disc ? 3 : 2)
+      this.keep = 1
+      if (t < 300 || t >= 2600) return
+      const P = this.path, p = ease(prog(t, 300, 1700)), h = this.along(P, p), tc = t < 2300 ? 3 : 2
+      for (let i = 0; i < h[2]; i++) this.line(P[i][0], P[i][1], P[i + 1][0], P[i + 1][1], tc, false)
+      this.line(P[h[2]][0], P[h[2]][1], h[0], h[1], tc, false)
+      for (let i = 1; i < P.length - 1; i++) if (i <= h[2]) this.plus(P[i][0], P[i][1], t < 1700 ? 5 : 4)
+      if (p < 1) this.rect(Math.round(h[0]) - 1, Math.round(h[1]) - 1, 3, 3, 6)
+    }
+
+    // The direct connection: punched from both ends at once, green while the code is compared, cut for the relay.
+    drawLink(t) {
+      if (t < 1700) return
+      const y = 29, xa = 47, xb = 97, mid = 72
+      if (t < 2300) {
+        const p = ease(prog(t, 1700, 2300))
+        const l = Math.round(xa + (mid - xa) * p), r = Math.round(xb - (xb - mid) * p)
+        for (let x = xa; x <= l; x++) this.pset(x, y, 5)
+        for (let x = r; x <= xb; x++) this.pset(x, y, 5)
+        this.pset(l, y, 6)
+        this.pset(r, y, 6)
+        return
+      }
+      const gap = t >= 12000 ? Math.round(prog(t, 12000, 12450) * 27) : 0
+      const base = t < 2600 ? (Math.floor(t / 90) % 2 ? 6 : 5) : 4
+      const gx = t >= 10500 && t < 12000 ? xa + (xb - xa) * prog(t, 10500, 11300) : -1
+      for (let x = xa; x <= xb; x++) {
+        if (gap && Math.abs(x - mid) < gap) continue
+        this.pset(x, y, x <= gx ? 9 : base)
+      }
+      if (t >= 12000 && !(t < 12450 && Math.floor(t / 110) % 2 === 1)) this.glyph('X', mid - 1, y - 2, t < 13000 ? 5 : 3)
+    }
+
+    relayBusy(t) {
+      for (let i = 0; i < 3; i++) {
+        const u = t - (14000 + i * 140)
+        if (u >= 600 && u < 800) return true
+      }
+      return false
+    }
+
+    drawRelay(t) {
+      if (t < 12500) return
+      this.keep = prog(t, 12500, 12900)
+      this.text('RELAY', 63, 1, 8)
+      this.rect(66, 7, 13, 9, 10)
+      this.frame(66, 7, 13, 9, 3)
+      this.rect(68, 9, 6, 1, 2)
+      this.rect(68, 12, 6, 1, 2)
+      this.pset(76, 9, Math.floor(t / 420) % 2 ? 9 : 2)
+      this.pset(76, 12, this.relayBusy(t) ? 6 : 3)
+      this.keep = 1
+      const p = prog(t, 12700, 13100)
+      if (p > 0) {
+        this.line(97, 26, 97 - 25 * p, 26 - 9 * p, 3, true)
+        this.line(47, 26, 47 + 25 * p, 26 - 9 * p, 3, true)
+      }
+    }
+
+    drawDevices(t) {
+      this.rect(3, 12, 44, 34, 10)
+      this.frame(3, 12, 44, 34, 3)
+      this.rect(6, 15, 38, 28, 12)
+      this.rect(22, 46, 6, 3, 11)
+      this.rect(16, 49, 18, 2, 11)
+      this.pset(43, 44, t >= 2300 ? 9 : 4)
+      this.rect(98, 10, 27, 44, 10)
+      this.frame(98, 10, 27, 44, 3)
+      for (const [x, y] of [[98, 10], [124, 10], [98, 53], [124, 53]]) this.pset(x, y, 0)
+      for (const [x, y] of [[99, 11], [123, 11], [99, 52], [123, 52]]) this.pset(x, y, 3)
+      this.rect(100, 14, 23, 36, 12)
+      this.rect(108, 12, 7, 1, 3)
+      this.rect(107, 51, 9, 1, 3)
+    }
+
+    drawCode(t, x, pc) {
+      const G = ['48213', '90577', '13264'], green = t >= (pc ? 10500 : 11300)
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 5; c++) {
+          const n = r * 5 + c, roll = t < 9500 + n * 45
+          const ch = roll ? String(Math.floor(hash(n, pc ? 41 : 42, Math.floor(t / 60)) * 10)) : G[r][c]
+          this.glyph(ch, x + c * 4, 18 + r * 6, roll ? 4 : green ? 9 : 7)
+        }
+      }
+      if (t >= 11300 && (t >= 11700 || Math.floor(t / 100) % 2 === 0)) this.text(this.word(['SHODA', 'MATCH']), x, 37, 9)
+    }
+
+    drawPC(t) {
+      if (t >= 9400 && t < 12000) { this.drawCode(t, 15, true); return }
+      this.text('ALENA', 8, 17, 8)
+      this.rect(28, 18, 2, 2, t >= 2300 ? 9 : 3)
+      this.rect(6, 23, 38, 1, 2)
+      if (t < 2600) return
+      const hi = this.word(['AHOJ!', 'HELLO'])
+      const typed = Math.min(5, Math.max(0, Math.floor((t - 2600) / 180)))
+      const sealed = t >= 3700 && t < 5900
+      this.rect(21, 26, t < 3700 ? Math.max(3, typed * 4 + 2) : 21, 7, sealed ? 2 : 5)
+      for (let i = 0; i < typed; i++) {
+        const enc = t >= 3700 + i * 120 && t < 5200 + i * 140
+        this.glyph(enc ? this.ciph(i, t) : hi[i], 22 + i * 4, 27, enc ? 6 : 7)
+      }
+      if (t < 3700 && Math.floor(t / 260) % 2 === 0) this.rect(22 + typed * 4, 27, 1, 5, 7)
+      if (t >= 4300 && t < 5900) this.sprite(LOCK, 15, 27, 5)
+      if (t >= 8500) this.sprite(CHECK, 33, 34, t >= 9000 ? 9 : 8)
+      if (t >= 9000) this.sprite(CHECK, 36, 34, 9)
+      if (t >= 15400) {
+        this.rect(7, 34, 13, 7, 2)
+        for (let i = 0; i < 3; i++) {
+          const a = 15400 + i * 140
+          if (t < a) continue
+          const enc = t < a + 300
+          this.glyph(enc ? this.ciph(i + 10, t) : 'OK!'[i], 8 + i * 4, 35, enc ? 6 : 7)
+        }
+      }
+    }
+
+    drawPhone(t) {
+      if (t >= 9400 && t < 12000) { this.drawCode(t, 102, false); return }
+      this.text('OPI', 102, 16, 8)
+      this.rect(115, 17, 2, 2, t >= 2300 ? 9 : 3)
+      this.rect(100, 22, 23, 1, 2)
+      if (t >= 6700) {
+        const hi = this.word(['AHOJ!', 'HELLO'])
+        this.rect(101, 25, 21, 7, 2)
+        if (t >= 8300 && t < 8800 && Math.floor(t / 100) % 2 === 0) this.frame(101, 25, 21, 7, 9)
+        for (let i = 0; i < 5; i++) {
+          const a = 6700 + i * 140, d = 7500 + i * 130
+          if (t < a) continue
+          this.glyph(t < d ? this.ciph(i + 20, t) : hi[i], 102 + i * 4, 26, t < d ? 6 : 7)
+        }
+      }
+      if (t >= 13000) {
+        const typed = Math.min(3, Math.max(0, Math.floor((t - 13000) / 180)))
+        const sealed = t >= 13700 && t < 14400
+        this.rect(109, 34, t < 13700 ? Math.max(3, typed * 4 + 2) : 13, 7, sealed ? 2 : 5)
+        for (let i = 0; i < typed; i++) {
+          const enc = t >= 13700 + i * 100 && t < 14000 + i * 140
+          this.glyph(enc ? this.ciph(i + 30, t) : 'OK!'[i], 110 + i * 4, 35, enc ? 6 : 7)
+        }
+        if (t < 13700 && Math.floor(t / 260) % 2 === 0) this.rect(110 + typed * 4, 35, 1, 5, 7)
+      }
+    }
+
+    route(i) { return [[23 + i * 4, 29], [47, 29], [97, 29], [103 + i * 4, 28]] }
+
+    packet(x, y, t, i) {
+      x = Math.round(x)
+      y = Math.round(y)
+      const k = Math.floor(t / 60)
+      for (let j = -1; j <= 1; j++) for (let m = -1; m <= 1; m++) this.pset(x + m, y + j, hash(x + m + i * 7, y + j, k) > 0.45 ? 6 : 4)
+    }
+
+    drawPackets(t) {
+      for (let i = 0; i < 5; i++) {
+        const u = t - (5200 + i * 140)
+        if (u <= 0 || u >= 1500) continue
+        const q = this.along(this.route(i), ease(u / 1500))
+        this.packet(q[0], q[1], t, i)
+      }
+      for (let i = 0; i < 3; i++) {
+        const u = t - (14000 + i * 140)
+        if (u <= 0 || u >= 1400) continue
+        let q
+        if (u < 600) q = this.along([[111 + i * 4, 37], [97, 26], [72, 17]], ease(u / 600))
+        else if (u < 800) q = [72, 17]
+        else q = this.along([[72, 17], [47, 26], [9 + i * 4, 37]], ease((u - 800) / 600))
+        this.packet(q[0], q[1], t, i + 5)
+      }
+    }
+
+    // Someone listening on the line: the eye follows the packets and sees only noise.
+    drawEye(t) {
+      if (t < 5300 || t >= 7300) return
+      const open = Math.min(prog(t, 5300, 5500), 1 - prog(t, 7050, 7300))
+      const x = 68, y = 38
+      this.rect(x + 2, y, 5, 1, 0)
+      this.rect(x + 1, y + 1, 7, 1, 0)
+      this.rect(x, y + 2, 9, 1, 0)
+      this.rect(x + 1, y + 3, 7, 1, 0)
+      this.rect(x + 2, y + 4, 5, 1, 0)
+      if (open < 0.5) { this.rect(x, y + 2, 9, 1, 8); return }
+      this.sprite(['..xxxxx..', '.x.....x.', 'x.......x', '.x.....x.', '..xxxxx..'], x, y, 8)
+      let sx = 0, n = 0
+      for (let i = 0; i < 5; i++) {
+        const u = t - (5200 + i * 140)
+        if (u > 0 && u < 1500) { sx += this.along(this.route(i), ease(u / 1500))[0]; n++ }
+      }
+      const look = n ? Math.max(-1, Math.min(1, Math.round((sx / n - 72) / 12))) : 0
+      this.rect(x + 3 + look, y + 1, 3, 3, 5)
+      this.pset(x + 4 + look, y + 2, 7)
+      if (n && t > 5500) {
+        this.glyph(this.ciph(50, t), 67, 32, 4)
+        this.glyph(this.ciph(51, t), 71, 32, 4)
+        this.glyph('?', 75, 32, 8)
+      }
+    }
+
+    fade(t) {
+      const v = t < 250 ? t / 250 : t > 16500 ? 1 - (t - 16500) / 500 : 1
+      if (v >= 1) return
+      for (let y = 0; y < this.H; y++) for (let x = 0; x < this.W; x++) if (hash(x, y, 5) >= v) this.fb[y * this.W + x] = 0
+    }
+  }
+
+  // OKpass: the vault is a field of encrypted noise. The same noise turns into the real vault, a decoy
+  // or a believable fake depending on the key. Entries come from the app's own lists of fake sites.
+  const PASS_LISTS = {
+    real: [['GITHUB.COM', 4, 5], ['SEZNAM.CZ', 3, 4], ['BAKALARI.CZ', 4, 8], [['WIFI DOMA', 'HOME WIFI'], 2, 11]],
+    decoy: [['NETFLIX.COM', 2, 5], ['SPOTIFY.COM', 3, 9], ['ROHLIK.CZ', 2, 13], [['RECEPTY', 'RECIPES'], 0, 8]],
+    fake: [['ALZA.CZ', 3, 4], ['DISCORD.COM', 2, 11], ['VINTED.CZ', 3, 9], ['GMAIL.COM', 4, 5]]
+  }
+  class PassScene extends PixelScene {
+    constructor(root) {
+      super(root, {
+        total: 18400,
+        stages: [0, 2200, 5600, 7600, 10600, 14600],
+        key: [1000, 5200, 6400, 10200, 14200, 15900],
+        rest: 1,
+        names: [['Google Disk', 'Google Drive'], ['správný klíč', 'right key'], ['zámek', 'lock'], ['klamný trezor', 'decoy vault'], ['špatný klíč', 'wrong key'], ['telefon', 'phone']],
+        hex: ['#140C0D', '#1E1012', '#2E1418', '#4A1218', '#7A1424', '#C8102E', '#FF5468', '#F2E6E6', '#A88A8C', '#4CC77A', '#221416', '#3A2A2C', '#0B0708', '#D9A13B'],
+        beats: [
+          [0, 'na Google Disku je jen šifrovaný šum (AES-256-GCM)', 'Google Drive holds only encrypted noise (AES-256-GCM)'],
+          [2200, 'Argon2id odvodí klíč → váš skutečný trezor', 'Argon2id derives the key → your real vault'],
+          [5600, 'chvíli nic? Trezor se sám zamkne', 'idle for a while? The vault locks itself'],
+          [7600, 'druhý klíč → klamný trezor s jiným obsahem', 'a second key → a decoy vault with other content'],
+          [10600, 'špatný klíč: žádná chyba, jen věrohodný falešný trezor', 'wrong key: no error, just a believable fake vault'],
+          [14600, 'telefon: otisk prstu, stejný trezor jako na PC', 'phone: a fingerprint, the same vault as on the PC']
+        ]
+      })
+      this.lists = {}
+      const inCloud = (x, y) => (y >= 6 && y <= 10 && x >= 101 && x <= 118) || Math.hypot(x - 104, y - 7) <= 3.3 || Math.hypot(x - 110, y - 5) <= 4.4 || Math.hypot(x - 115, y - 7) <= 3.3
+      this.cloudFill = []
+      this.cloudLine = []
+      for (let y = 0; y <= 11; y++) {
+        for (let x = 99; x <= 120; x++) {
+          if (!inCloud(x, y)) continue
+          const inner = inCloud(x - 1, y) && inCloud(x + 1, y) && inCloud(x, y - 1) && inCloud(x, y + 1)
+          ;(inner ? this.cloudFill : this.cloudLine).push([x, y])
+        }
+      }
+    }
+
+    // A decrypted vault, drawn once per language into its own buffer: icon, name, strength meter.
+    list(name) {
+      const id = name + lang
+      if (this.lists[id]) return this.lists[id]
+      const buf = new Uint8Array(this.W * this.H), save = this.fb
+      this.fb = buf
+      this.rect(9, 15, 110, 46, 12)
+      PASS_LISTS[name].forEach(([label, s, fc], r) => {
+        const y = 19 + r * 10, text = this.word(label)
+        if (s === 0) {
+          this.sprite(['xxxxx..', 'x...xx.', 'x....xx', 'x.xxx.x', 'x.....x', 'x.xxx.x', 'xxxxxxx'], 12, y, fc)
+          this.rect(100, y + 2, 15, 1, 2)
+          this.rect(100, y + 4, 10, 1, 2)
+        } else {
+          this.rect(12, y, 7, 7, fc)
+          for (const [x, yy] of [[12, y], [18, y], [12, y + 6], [18, y + 6]]) this.pset(x, yy, 12)
+          this.glyph(text[0], 14, y + 1, fc === 8 || fc === 9 || fc === 13 ? 0 : 7)
+          for (let i = 0; i < 4; i++) this.rect(100 + i * 4, y + 3, 3, 2, i < s ? (s === 1 ? 5 : s === 2 ? 13 : 9) : 2)
+        }
+        this.text(text, 22, y + 1, 7)
+        if (r < 3) for (let x = 12; x <= 114; x += 2) this.pset(x, y + 8, 1)
+      })
+      this.fb = save
+      return (this.lists[id] = buf)
+    }
+
+    paint(t) {
+      this.fb.fill(0)
+      this.keep = 1
+      const st = this.vaultAt(t), open = !!st && st.w > 0.7
+      this.drawKey(t)
+      this.drawArgon(t)
+      this.drawVault(t, st)
+      if (t >= 15200 && t < 16200) this.drawPrint(t)
+      this.drawCloud(t)
+      this.sprite(open ? LOCK_OPEN : LOCK, 8, 64, open ? 9 : 5)
+      this.drawTimer(t, st)
+      this.blit()
+    }
+
+    // Which vault the key opens and how far the decryption wave got (0 = all noise, 1.4 = all readable).
+    vaultAt(t) {
+      const L = 1.4, up = (a, b) => L * ease(prog(t, a, b)), down = (a, b) => L * (1 - ease(prog(t, a, b)))
+      if (t < 2200) return null
+      if (t < 5600) return { img: this.list('real'), w: up(4000, 4900), rad: false }
+      if (t < 7600) return { img: this.list('real'), w: t < 7000 ? L : down(7000, 7600), rad: false }
+      if (t < 10600) return { img: this.list('decoy'), w: up(8900, 9800), rad: false }
+      if (t < 11200) return { img: this.list('decoy'), w: down(10600, 11200), rad: false }
+      if (t < 14600) return { img: this.list('fake'), w: up(12650, 13550), rad: false }
+      if (t < 15200) return { img: this.list('fake'), w: down(14600, 15200), rad: false }
+      if (t < 16200) return null
+      if (t < 17800) return { img: this.list('real'), w: up(16200, 17000), rad: true }
+      return { img: this.list('real'), w: down(17800, 18400), rad: true }
+    }
+
+    fieldAt(t) {
+      const typ = (a, n) => Math.max(0, Math.min(n, Math.floor((t - a) / 150)))
+      const wipe = (n, a) => Math.max(0, n - Math.floor(prog(t, a, a + 400) * n))
+      if (t < 2200) return { n: 0 }
+      if (t < 7000) return { n: typ(2200, 8), typing: t < 3400 }
+      if (t < 7600) return { n: wipe(8, 7000) }
+      if (t < 10600) return { n: typ(7600, 6), typing: t < 8500 }
+      if (t < 11200) return { n: wipe(6, 10600) }
+      if (t < 14600) return { n: typ(11200, 7), typing: t < 12250 }
+      if (t < 15200) return { n: wipe(7, 14600) }
+      if (t < 17800) return { phone: true }
+      return { n: 0 }
+    }
+
+    drawKey(t) {
+      this.rect(8, 2, 64, 9, 12)
+      this.frame(8, 2, 64, 9, 3)
+      const f = this.fieldAt(t)
+      if (f.phone) {
+        this.text(this.word(['TELEFON', 'PHONE']), 12, 4, 8)
+        if (t >= 16050) this.sprite(CHECK, 42, 5, 9)
+        return
+      }
+      this.sprite(['xxx.....', 'x.xxxxxx', 'xxx..x.x'], 11, 5, f.n > 0 ? 7 : 8)
+      for (let i = 0; i < f.n; i++) this.plus(23 + i * 5, 6, 7)
+      if (f.typing && Math.floor(t / 260) % 2 === 0) this.rect(21 + f.n * 5, 4, 1, 5, 7)
+    }
+
+    // Argon2id is memory-hard: a block of memory fills up before the key is ready.
+    drawArgon(t) {
+      for (const [a, b] of [[3400, 4000], [8500, 8900], [12250, 12650]]) {
+        if (t < a || t >= b) continue
+        const p = prog(t, a, b), k = Math.floor(t / 40)
+        this.frame(75, 2, 21, 9, 2)
+        for (let y = 3; y <= 9; y++) {
+          for (let x = 76; x <= 94; x++) {
+            if (hash(x, y, 6) >= p * 1.15) continue
+            this.pset(x, y, p > 0.85 ? (hash(x, y, k) > 0.5 ? 6 : 7) : hash(x, y, 8) > 0.5 ? 4 : 3)
+          }
+        }
+      }
+    }
+
+    drawVault(t, st) {
+      this.frame(8, 14, 112, 48, 3)
+      const W = this.W, fb = this.fb, k = Math.floor(t / 50)
+      for (let y = 15; y <= 60; y++) {
+        for (let x = 9; x <= 118; x++) {
+          let c = -1
+          if (st) {
+            const th = (st.rad ? Math.hypot((x - 64) / 55, (y - 38) / 23) * 0.8 : ((x - 9) / 110) * 0.75 + ((y - 15) / 46) * 0.25) + hash(x, y, 4) * 0.1
+            if (th < st.w - 0.08) c = st.img[y * W + x]
+            else if (th < st.w) {
+              const spark = hash(x, y, k)
+              c = spark > 0.8 ? 7 : spark > 0.35 ? 6 : 5
+            }
+          }
+          if (c < 0) {
+            const h = hash(x, y, Math.floor((t + hash(x, y, 2) * 1200) / 1200) + 100)
+            c = h < 0.55 ? 1 : h < 0.82 ? 2 : h < 0.95 ? 3 : 4
+          }
+          fb[y * W + x] = c
+        }
+      }
+    }
+
+    // A fingerprint from math: wavy rings inside an oval, scanned from top to bottom.
+    drawPrint(t) {
+      const cx = 64, cy = 38, scan = 24 + prog(t, 15450, 16050) * 28, ok = t >= 16050
+      this.keep = prog(t, 15200, 15450)
+      for (let y = cy - 14; y <= cy + 14; y++) {
+        for (let x = cx - 13; x <= cx + 13; x++) {
+          const px = (x - cx) / 13, py = (y - cy) / 14
+          if (px * px + py * py > 1) continue
+          let c = 12
+          const ex = (x - cx) / 8, ey = (y - cy) / 10
+          if (ex * ex + ey * ey <= 1) {
+            const ax = x - cx, ay = (y - cy + 3) * 0.8, d = Math.hypot(ax, ay)
+            const v = d + 0.9 * Math.sin(Math.atan2(ay, ax) * 2 + d * 0.35)
+            if (Math.floor(v) % 2 === 0) c = ok ? 9 : y < scan ? 5 : 8
+          }
+          if (!ok && t >= 15450 && Math.round(scan) === y) c = c === 12 ? 4 : 6
+          this.pset(x, y, c)
+        }
+      }
+      this.keep = 1
+    }
+
+    drawCloud(t) {
+      for (const [x, y] of this.cloudFill) this.pset(x, y, 1)
+      for (const [x, y] of this.cloudLine) this.pset(x, y, 8)
+      if (t >= 2200) return
+      if (Math.floor(t / 300) % 2 === 0) this.sprite(['..x..', '.xxx.', 'x.x.x', '..x..', '..x..'], 108, 3, 7)
+      for (let k = 0; k < 5; k++) {
+        const ph = ((t + k * 420) % 1400) / 1400
+        this.pset(102 + k * 3, Math.round(14 - ph * 5), ph < 0.6 ? 6 : 4)
+      }
+    }
+
+    drawTimer(t, st) {
+      this.rect(16, 66, 104, 2, 1)
+      if (!st || st.w < 1.25) return
+      const f = t >= 5600 && t < 7000 ? 1 - prog(t, 5600, 7000) : 1
+      this.rect(16, 66, Math.max(0, Math.round(104 * f)), 2, f < 0.25 && Math.floor(t / 150) % 2 === 0 ? 5 : 4)
+    }
+  }
+
+  // Start both scenes; the feature row about the part the scene is showing lights up.
+  for (const app of document.querySelectorAll('[data-app]')) {
+    const root = app.querySelector('.scene')
+    if (!root) continue
+    const scene = root.dataset.scene === 'okpass' ? new PassScene(root) : new FetchScene(root)
+    const rows = [...app.querySelectorAll('.feat')]
+    scene.onStage = (st) => {
+      for (const row of rows) row.classList.toggle('on', row.dataset.stages.split(' ').includes(String(st)))
+    }
+    scene.start()
+  }
+
+  // The headline arrives as ciphertext and decrypts itself letter by letter (again after a language switch).
+  let decodeTimer = 0
+  const decodeTitle = () => {
+    const h1 = document.querySelector('.intro h1'), span = h1 && h1.querySelector('[data-i18n]')
+    if (!span) return
+    clearTimeout(decodeTimer)
+    h1.querySelector('.scramble')?.remove()
+    span.classList.remove('ghost')
+    if (reduceMotion.matches) return
+    const chars = [...span.textContent], G = '01#%@*/+=?<>ABCDEF'
+    const overlay = document.createElement('span')
+    overlay.className = 'scramble'
+    overlay.setAttribute('aria-hidden', 'true')
+    const cells = chars.map((ch) => overlay.appendChild(document.createElement('span')))
+    span.classList.add('ghost')
+    h1.append(overlay)
+    const t0 = performance.now()
+    const tick = () => {
+      const e = performance.now() - t0
+      let done = true
+      cells.forEach((cell, i) => {
+        if (chars[i] === ' ' || e >= 200 + i * 24 + hash(i, 0, 1) * 180) {
+          cell.textContent = chars[i]
+          cell.className = ''
+        } else {
+          done = false
+          cell.textContent = G[Math.floor(hash(i, 1, Math.floor(e / 55)) * G.length)]
+          cell.className = 'u'
+        }
+      })
+      if (done) {
+        overlay.remove()
+        span.classList.remove('ghost')
+      } else decodeTimer = setTimeout(tick, 40)
+    }
+    tick()
+  }
+  decodeTitle()
+  langHooks.push(decodeTitle)
+
+  // Background: a faint grid of dots. Now and then a bit lights up, a hex digit flickers or a packet runs
+  // along the grid; near the mouse the dots warm up. It scrolls at a quarter of the page speed, so it sits deeper.
+  const startBackground = (cv) => {
+    const ctx = cv.getContext('2d')
+    const S = 24
+    const tile = document.createElement('canvas')
+    tile.width = tile.height = S
+    const tctx = tile.getContext('2d')
+    tctx.fillStyle = '#2A1316'
+    tctx.fillRect(0, 0, 2, 2)
+    const flips = []
+    const packets = []
+    let w = 0, h = 0, dpr = 1, ox = 0, pattern = null, last = 0, nextPacket = 0
+    let mx = -1e4, my = -1e4, lx = -1e4, ly = -1e4
+
+    const draw = (now, dt) => {
+      const still = reduceMotion.matches
+      const off = still ? 0 : scrollY * 0.25
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      ctx.imageSmoothingEnabled = false
+      ctx.clearRect(0, 0, w, h)
+      ctx.save()
+      ctx.translate(ox, -(off % S))
+      ctx.fillStyle = pattern
+      ctx.fillRect(-S, -S, w + 2 * S, h + 2 * S)
+      ctx.restore()
+      if (still) return
+      const cols = Math.ceil(w / S), r0 = Math.floor(off / S), r1 = Math.ceil((off + h) / S)
+      const X = (c) => ox + c * S
+      const Y = (r) => r * S - off
+
+      if (mx > -1e3) {
+        if (lx < -1e3) { lx = mx; ly = my }
+        lx += (mx - lx) * 0.2
+        ly += (my - ly) * 0.2
+        const R = 150
+        for (let r = Math.floor((ly + off - R) / S); r <= Math.ceil((ly + off + R) / S); r++) {
+          for (let c = Math.floor((lx - ox - R) / S); c <= Math.ceil((lx - ox + R) / S); c++) {
+            const d = Math.hypot(X(c) - lx, Y(r) - ly)
+            if (d >= R) continue
+            ctx.fillStyle = `rgba(200, 16, 46, ${((1 - d / R) ** 2 * 0.55).toFixed(3)})`
+            ctx.fillRect(X(c), Y(r), 2, 2)
+          }
+        }
+      } else lx = ly = -1e4
+
+      const area = (w * h) / (1920 * 1080)
+      const spawn = (glyph) => flips.push({
+        c: Math.floor(Math.random() * cols), r: r0 + Math.floor(Math.random() * (r1 - r0)), t0: now,
+        d: glyph ? 1400 + Math.random() * 800 : 900 + Math.random() * 900, glyph
+      })
+      if (Math.random() < (6 * area * dt) / 1000) spawn(false)
+      if (Math.random() < (1.2 * area * dt) / 1000) spawn(true)
+      for (let i = flips.length - 1; i >= 0; i--) {
+        const f = flips[i], p = (now - f.t0) / f.d
+        if (p >= 1) { flips.splice(i, 1); continue }
+        const a = Math.sin(Math.PI * p)
+        if (f.glyph) {
+          const g = FONT[CIPHER[Math.floor(hash(f.c, f.r, Math.floor(now / 160)) * 16)]]
+          ctx.fillStyle = `rgba(200, 16, 46, ${(a * 0.32).toFixed(3)})`
+          for (let k = 0; k < 15; k++) if (g.charCodeAt(k) === 49) ctx.fillRect(X(f.c) + 7 + (k % 3) * 2, Y(f.r) + 6 + ((k / 3) | 0) * 2, 2, 2)
+        } else {
+          ctx.fillStyle = `rgba(222, 26, 58, ${(a * 0.85).toFixed(3)})`
+          ctx.fillRect(X(f.c), Y(f.r), 2, 2)
+        }
+      }
+
+      if (now > nextPacket && packets.length < 3) {
+        nextPacket = now + 1600 + Math.random() * 2400
+        const s = Math.random() < 0.5 ? 1 : -1
+        const p = Math.random() < 0.65
+          ? { c: s > 0 ? -1 : cols + 1, r: r0 + 1 + Math.floor(Math.random() * Math.max(1, r1 - r0 - 2)), dx: s, dy: 0 }
+          : { c: 1 + Math.floor(Math.random() * Math.max(1, cols - 2)), r: s > 0 ? r0 - 1 : r1 + 1, dx: 0, dy: s }
+        Object.assign(p, { f: 0, v: 7 + Math.random() * 5, born: now, trail: [[p.c, p.r]] })
+        packets.push(p)
+      }
+      for (let i = packets.length - 1; i >= 0; i--) {
+        const p = packets[i]
+        p.f += (p.v * dt) / 1000
+        while (p.f >= 1) {
+          p.f -= 1
+          p.c += p.dx
+          p.r += p.dy
+          p.trail.push([p.c, p.r])
+          if (p.trail.length > 9) p.trail.shift()
+          if (Math.random() < 0.16) [p.dx, p.dy] = Math.random() < 0.5 ? [p.dy, -p.dx] : [-p.dy, p.dx]
+        }
+        if (p.c < -3 || p.c > cols + 3 || p.r < r0 - 3 || p.r > r1 + 3 || now - p.born > 20000) { packets.splice(i, 1); continue }
+        const hx = X(p.c + p.dx * p.f), hy = Y(p.r + p.dy * p.f)
+        ctx.strokeStyle = 'rgba(200, 16, 46, 0.2)'
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        p.trail.forEach(([c, r], k) => (k ? ctx.lineTo(X(c) + 0.5, Y(r) + 0.5) : ctx.moveTo(X(c) + 0.5, Y(r) + 0.5)))
+        ctx.lineTo(hx + 0.5, hy + 0.5)
+        ctx.stroke()
+        p.trail.forEach(([c, r], k) => {
+          ctx.fillStyle = `rgba(200, 16, 46, ${(((k + 1) / p.trail.length) * 0.5).toFixed(3)})`
+          ctx.fillRect(X(c), Y(r), 2, 2)
+        })
+        ctx.fillStyle = 'rgba(255, 84, 104, 0.8)'
+        ctx.fillRect(hx - 1, hy - 1, 4, 4)
+      }
+    }
+
+    const resize = () => {
+      w = innerWidth
+      h = innerHeight
+      dpr = Math.min(2, devicePixelRatio || 1)
+      if (w * h * dpr * dpr > 9e6) dpr = 1
+      cv.width = Math.round(w * dpr)
+      cv.height = Math.round(h * dpr)
+      ox = Math.floor((w % S) / 2)
+      pattern = ctx.createPattern(tile, 'repeat')
+      draw(performance.now(), 0)
+    }
+    const tick = (now) => {
+      requestAnimationFrame(tick)
+      if (reduceMotion.matches || now - last < 33) return
+      draw(now, Math.min(100, now - last))
+      last = now
+    }
+    addEventListener('resize', resize)
+    addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') { mx = e.clientX; my = e.clientY } }, { passive: true })
+    document.documentElement.addEventListener('mouseleave', () => { mx = my = -1e4 })
+    resize()
+    requestAnimationFrame(tick)
+  }
+  const bg = document.querySelector('canvas.bg')
+  if (bg) startBackground(bg)
 })()
 </script>
 </body>
