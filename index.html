@@ -62,37 +62,145 @@ img { display: block; max-width: 100%; height: auto; }
 .lang button:hover { color: var(--text); }
 .lang button[aria-pressed="true"] { background: var(--accent); color: #fff; }
 
-.intro { padding-block: 72px 40px; display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 48px; align-items: end; }
-.intro h1 { position: relative; font-size: 44px; line-height: 1.12; font-weight: 700; margin: 0 0 18px; letter-spacing: -0.01em; max-width: 20ch; }
-.intro p { color: var(--muted); max-width: 60ch; margin: 0; }
+/* ---- Loading screen: a vault door that unlocks, says OK and swings open ---- */
+.vault { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: var(--bg); perspective: 1400px;
+  animation: vault-out 0.55s ease 1.5s forwards; }
+.vault.skip { animation: vault-out 0.25s ease forwards; }
+.vault-door { width: min(64vmin, 340px); aspect-ratio: 1; transform-origin: 0% 50%;
+  animation: door-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both, door-open 0.75s cubic-bezier(0.65, 0, 0.35, 1) 1.25s forwards; }
+.vault-door svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.vault-dial { transform-box: view-box; transform-origin: 100px 100px; animation: dial 0.9s cubic-bezier(0.45, 0, 0.25, 1) 0.2s both; }
+.vault-bolt { animation: bolt 0.2s ease-in 1s forwards; }
+.vault-glow { opacity: 0; animation: glow 0.7s ease-out 1s; }
+.vault .okguy { color: var(--text); }
+.vault .okguy-arm-r { animation: arm-up-r 0.35s cubic-bezier(0.3, 1.6, 0.5, 1) 1s forwards; }
+.vault .okguy-arm-l { animation: arm-up-l 0.35s cubic-bezier(0.3, 1.6, 0.5, 1) 1s forwards; }
+@keyframes arm-up-r { to { transform: rotate(-48deg); } }
+@keyframes arm-up-l { to { transform: rotate(48deg); } }
+@keyframes vault-out { to { opacity: 0; visibility: hidden; } }
+@keyframes door-in { from { opacity: 0; transform: scale(0.86); } }
+@keyframes door-open { to { transform: rotateY(-100deg); opacity: 0.3; } }
+@keyframes dial { 40% { transform: rotate(210deg); } 70% { transform: rotate(90deg); } 100% { transform: rotate(150deg); } }
+@keyframes bolt { to { transform: translateX(-18px); } }
+@keyframes glow { 30% { opacity: 1; } }
+
+/* ---- The OK guys: the logo turned 90°. O is the face, the K's stem the arms, its two strokes the legs.
+   Each one has its own act; click any of them and it does a flip. ---- */
+.okguy { display: block; overflow: visible; color: var(--text); }
+.okguy-head, .okguy-torso, .okguy-arm, .okguy-leg { fill: none; stroke: currentColor; stroke-width: 9; }
+/* Rounded ends make round elbows where the arms bend away from the torso. */
+.okguy-arm, .okguy-torso { stroke-linecap: round; }
+.okguy-face ellipse { fill: currentColor; }
+.okguy-mouth { fill: none; stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; }
+.okguy * { transform-box: fill-box; }
+/* The body scales and jumps from the feet, which stand at y = 98. */
+.okguy-body { transform-box: view-box; transform-origin: 50px 98px; }
+.okguy-legs { transform-origin: 50% 0%; }
+/* Arms swing from the shoulders at the ends of the torso, legs from the hip. */
+.okguy-arm-r, .okguy-leg-r { transform-origin: 0% 0%; }
+.okguy-arm-l, .okguy-leg-l { transform-origin: 100% 0%; }
+.okguy-face { transition: transform 0.15s ease-out; }
+.okguy-face ellipse { transform-origin: center; animation: eye-blink 4.6s infinite; }
+.okguy[data-tap] { cursor: pointer; }
+.okguy.flip { animation: flip 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
+@keyframes flip { 50% { transform: translateY(-12px) rotateY(180deg); } to { transform: rotateY(360deg); } }
+@keyframes eye-blink { 0%, 95%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
+@keyframes hop { 50% { transform: translateY(-10px); } }
+
+/* The greeter (hero): waves, crouches and jumps, cheers with both arms up, looks around. */
+.guy-greeter .okguy-body { animation: greet-body 10s ease-in-out 1.6s infinite; }
+.guy-greeter .okguy-arm-r { animation: greet-arm-r 10s ease-in-out 1.6s infinite; }
+.guy-greeter .okguy-arm-l { animation: greet-arm-l 10s ease-in-out 1.6s infinite; }
+.guy-greeter .okguy-legs { animation: greet-legs 10s ease-in-out 1.6s infinite; }
+@keyframes greet-arm-r { 0%, 18%, 48%, 66%, 100% { transform: none; } 3%, 9%, 15% { transform: rotate(-50deg); } 6%, 12% { transform: rotate(-18deg); } 52%, 62% { transform: rotate(-48deg); } }
+@keyframes greet-arm-l { 0%, 48%, 66%, 100% { transform: none; } 52%, 62% { transform: rotate(48deg); } }
+@keyframes greet-body {
+  0%, 24%, 42%, 50%, 64%, 70%, 92%, 100% { transform: none; }
+  27% { transform: scale(1.1, 0.86); }
+  32% { transform: translateY(-28px) scale(0.94, 1.08); }
+  37% { transform: scale(1.08, 0.9); }
+  55%, 59% { transform: translateY(-10px); }
+  57% { transform: translateY(-4px); }
+  76% { transform: rotate(-6deg); }
+  84% { transform: rotate(6deg); }
+}
+@keyframes greet-legs { 0%, 29%, 36%, 100% { transform: none; } 32% { transform: scaleY(0.75); } }
+
+/* The stretcher (OKfetch window): grows tall on long legs to look over the window, then shrinks back. */
+.guy-stretch .okguy-legs { animation: stretch-legs 7s ease-in-out infinite; }
+.guy-stretch .okguy-body { animation: stretch-body 7s ease-in-out infinite; }
+.guy-stretch .okguy-arm-r { animation: stretch-arm-r 7s ease-in-out infinite; }
+.guy-stretch .okguy-arm-l { animation: stretch-arm-l 7s ease-in-out infinite; }
+@keyframes stretch-legs { 0%, 20%, 64%, 100% { transform: none; } 32%, 52% { transform: scaleY(1.9); } }
+@keyframes stretch-body { 0%, 20%, 64%, 100% { transform: none; } 32%, 52% { transform: translateY(-40px) scale(1.12); } 42% { transform: translateY(-40px) scale(1.12) rotate(-4deg); } }
+@keyframes stretch-arm-r { 0%, 20%, 64%, 100% { transform: none; } 32%, 52% { transform: rotate(25deg); } }
+@keyframes stretch-arm-l { 0%, 20%, 64%, 100% { transform: none; } 32%, 52% { transform: rotate(-25deg); } }
+
+/* The chameleon (OKpass window): keeps changing colour, faster when you point at it. */
+/* Never white: it starts red, so it is coloured even before (or without) the animation. */
+.guy-chameleon .okguy-body { color: #C8102E; animation: chameleon 8s linear infinite; }
+.guy-chameleon:hover .okguy-body { animation-duration: 1.2s; }
+.guy-chameleon .okguy-arm-r { animation: flap-r 3s ease-in-out infinite; }
+.guy-chameleon .okguy-arm-l { animation: flap-l 3s ease-in-out 0.4s infinite; }
+@keyframes chameleon { 0%, 100% { color: #C8102E; } 25% { color: #FF5468; } 50% { color: #D9A13B; } 75% { color: #4CC77A; } }
+@keyframes flap-r { 0%, 70%, 100% { transform: none; } 80% { transform: rotate(-35deg); } 90% { transform: rotate(10deg); } }
+@keyframes flap-l { 0%, 70%, 100% { transform: none; } 80% { transform: rotate(35deg); } 90% { transform: rotate(-10deg); } }
+
+/* The dancer (footer): dances on the edge and says bye. */
+.guy-dancer .okguy-body { animation: sway 1.6s ease-in-out infinite; }
+.guy-dancer .okguy-arm-r { animation: dance-r 0.8s ease-in-out infinite alternate; }
+.guy-dancer .okguy-arm-l { animation: dance-l 0.8s ease-in-out infinite alternate; }
+.guy-dancer .okguy-leg-l { animation: step-l 0.8s ease-in-out infinite alternate; }
+.guy-dancer .okguy-leg-r { animation: step-r 0.8s ease-in-out infinite alternate; }
+@keyframes sway { 0%, 100% { transform: rotate(-7deg); } 50% { transform: translateY(-4px) rotate(7deg); } }
+@keyframes dance-r { from { transform: rotate(-50deg); } to { transform: rotate(25deg); } }
+@keyframes dance-l { from { transform: rotate(-25deg); } to { transform: rotate(50deg); } }
+@keyframes step-l { from { transform: rotate(12deg); } to { transform: rotate(-4deg); } }
+@keyframes step-r { from { transform: rotate(4deg); } to { transform: rotate(-12deg); } }
+
+/* ---- Hero: one thing to look at ---- */
+.hero { min-height: min(780px, calc(100svh - 57px)); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 48px; align-items: center; padding-block: 64px 96px; }
+.kicker { margin: 0 0 20px; color: var(--accent); font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.hero h1 { position: relative; font-size: clamp(36px, 6.2vw, 72px); line-height: 1.05; font-weight: 700; margin: 0 0 24px; letter-spacing: -0.02em; max-width: 18ch; }
+.hero-lede { color: var(--muted); font-size: 18px; margin: 0 0 40px; max-width: 46ch; }
 /* The headline decrypts itself: a scrambled copy sits on top of the real text, which stays for screen readers. */
-.intro h1 .ghost { color: transparent; }
+.hero h1 .ghost { color: transparent; }
 .scramble { position: absolute; inset: 0; }
 .scramble .u { color: var(--accent); }
-.jump { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border); }
-.jump li { border-bottom: 1px solid var(--border); }
-.jump a { display: grid; grid-template-columns: 3ch auto minmax(0, 1fr) auto; gap: 14px; align-items: baseline; padding: 14px 8px; text-decoration: none; }
-.jump a:hover { background: var(--surface); }
-.jump .n { color: var(--accent); font-size: 13px; font-weight: 700; }
-.jump .name { font-weight: 700; }
-.jump .what { color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.jump .arr { color: var(--muted); transition: transform 0.2s, color 0.2s; }
-.jump a:hover .arr { color: var(--accent); transform: translateX(4px); }
+.picks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; max-width: 640px; }
+.pick { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 18px 20px; border: 1px solid var(--border);
+  border-radius: 10px; background: rgba(23, 13, 14, 0.7); text-decoration: none; transition: border-color 0.2s, background-color 0.2s, transform 0.2s; }
+.pick:hover { border-color: var(--accent); background: var(--surface); transform: translateY(-2px); }
+.pick .n { color: var(--accent); font-size: 13px; font-weight: 700; }
+.pick b { display: block; font-size: 18px; }
+.pick small { display: block; color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pick .arr { color: var(--muted); transition: transform 0.2s, color 0.2s; }
+.pick:hover .arr { color: var(--accent); transform: translateX(4px); }
+.hero-guy { position: relative; width: clamp(150px, 20vw, 240px); }
+.hero-guy .okguy { width: 100%; height: auto; }
+/* The speech bubble pops up while the greeter waves. */
+.say { position: absolute; top: 0; left: -22%; padding: 6px 12px; border-radius: 10px 10px 10px 2px; background: var(--accent); color: #fff;
+  font-weight: 700; font-size: 14px; white-space: nowrap; transform-origin: 0 100%; opacity: 0; animation: say 10s ease-in-out 1.6s infinite; }
+@keyframes say { 0%, 100% { opacity: 0; transform: scale(0.6); } 2%, 18% { opacity: 1; transform: scale(1); } 21% { opacity: 0; transform: scale(0.8); } }
+/* After the vault opens, the hero rises in. A skipped intro starts it at once. */
+.js .hero-text > *, .js .hero-guy { animation: rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--intro, 1.45s) + var(--i, 0) * 90ms); }
+.skip-intro { --intro: 0s; }
+@keyframes rise { from { opacity: 0; transform: translateY(28px); } }
+/* Everything below slides in once, as it scrolls into view. */
+.js .reveal { opacity: 0; transform: translateY(32px); transition: opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); transition-delay: calc(var(--i, 0) * 120ms); }
+.js .reveal.in { opacity: 1; transform: none; }
 
-/* One app. */
-.app { padding-block: 56px 64px; border-top: 1px solid var(--border); scroll-margin-top: 8px; }
-.intro + .app { border-top: 0; }
-.app-head { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; align-items: start; }
-.app h2 { font-size: 32px; line-height: 1.2; margin: 0 0 12px; display: flex; align-items: center; gap: 12px; }
-.app h2 img { width: 32px; height: 32px; border-radius: 6px; }
-.lede { margin: 0 0 16px; max-width: 46ch; }
-.eyebrow { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+/* ---- One app: a big title and the download, then what it does, then the folded install steps ---- */
+.app { padding-block: 120px; border-top: 1px solid var(--border); scroll-margin-top: 0; }
+.app-head { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 64px; align-items: center; }
+.eyebrow { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
 .eyebrow b { color: var(--accent); }
-.stack { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0 0 28px; padding: 0; }
-.stack li { font-size: 12px; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; }
+.app h2 { font-size: clamp(44px, 6vw, 76px); line-height: 1; letter-spacing: -0.02em; margin: 0 0 20px; display: flex; align-items: center; gap: 16px; }
+.app h2 img { width: 0.75em; height: 0.75em; border-radius: 0.16em; }
+.lede { margin: 0 0 32px; max-width: 42ch; font-size: 17px; }
 
 /* PC / Telefon switch: the tab underline from the apps. */
-.platforms { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+.platforms { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 28px; }
 .platforms button {
   font: inherit; font-weight: 700; color: var(--muted); background: none; border: 0;
   padding: 10px 18px 12px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
@@ -100,12 +208,23 @@ img { display: block; max-width: 100%; height: auto; }
 .platforms button:hover { color: var(--text); }
 .platforms button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
 
-.download { display: inline-flex; align-items: center; gap: 12px; padding: 14px 22px; border: 0; border-radius: var(--radius);
-  background: var(--accent); color: #fff; font: inherit; font-weight: 700; font-size: 16px; text-decoration: none; cursor: pointer; }
+.download { display: inline-flex; align-items: center; gap: 12px; padding: 16px 26px; border: 0; border-radius: var(--radius);
+  background: var(--accent); color: #fff; font: inherit; font-weight: 700; font-size: 17px; text-decoration: none; cursor: pointer; }
 .download:hover { background: var(--accent-hover); }
 .download:disabled { cursor: progress; opacity: 0.85; }
 .download svg { width: 20px; height: 20px; flex: none; }
-.download-meta { color: var(--muted); font-size: 13px; margin: 12px 0 0; }
+/* The peekers: an OK guy hides behind each download button. On hover it pops up over the edge and cheers;
+   while the ZIP is being packed it jumps. The box above the button hides whatever is below its edge. */
+.dl { position: relative; display: inline-block; }
+.peek-box { position: absolute; right: 14px; bottom: 100%; width: 72px; height: 90px; overflow: hidden; pointer-events: none; }
+.guy-peek { position: absolute; left: 0; bottom: 0; width: 72px; height: auto; transform: translateY(100%); transition: transform 0.45s cubic-bezier(0.3, 1.5, 0.5, 1); }
+.dl:hover .guy-peek, .dl:focus-within .guy-peek, .dl:has(.download:disabled) .guy-peek { transform: translateY(44%); }
+.dl:hover .guy-peek .okguy-arm-r, .dl:focus-within .guy-peek .okguy-arm-r { animation: cheer-r 0.4s ease-in-out 0.3s infinite alternate; }
+.dl:hover .guy-peek .okguy-arm-l, .dl:focus-within .guy-peek .okguy-arm-l { animation: cheer-l 0.4s ease-in-out 0.3s infinite alternate; }
+.dl:has(.download:disabled) .guy-peek .okguy-body { animation: hop 0.5s ease-in-out infinite; }
+@keyframes cheer-r { from { transform: rotate(-12deg); } to { transform: rotate(-50deg); } }
+@keyframes cheer-l { from { transform: rotate(12deg); } to { transform: rotate(50deg); } }
+.download-meta { color: var(--muted); font-size: 13px; margin: 14px 0 0; }
 .download-error { color: #FF6B7A; font-size: 13px; margin: 12px 0 0; max-width: 52ch; }
 .alt { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
 
@@ -123,22 +242,24 @@ img { display: block; max-width: 100%; height: auto; }
 .swap { animation: swap 0.25s ease-out; }
 @keyframes swap { from { opacity: 0; transform: translateY(6px); } }
 
-/* Features, requirements, steps. */
-.app-body { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; margin-top: 56px; }
-.app h3 { font-size: 16px; margin: 0 0 14px; }
+/* What it does: the list next to the animation. */
+.app-how { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 64px; margin-top: 120px; align-items: start; }
+.app h3 { font-size: 26px; line-height: 1.2; margin: 0 0 24px; display: flex; align-items: center; gap: 12px; }
+.app h3::before { content: ""; flex: none; width: 10px; height: 10px; background: var(--accent); }
 .features { list-style: none; margin: 0; padding: 0; }
 .features li { border-top: 1px solid var(--border); }
 .features li:last-child { border-bottom: 1px solid var(--border); }
-.features .plain, .features .feat { position: relative; display: block; padding: 10px 0 10px 22px; }
+.features .plain, .features .feat { position: relative; display: block; padding: 14px 12px 14px 26px; }
 .features .feat { transition: background-color 0.2s, color 0.2s; }
-.features .plain::before, .features .feat::before { content: ""; position: absolute; left: 2px; top: 19px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); transition: border-radius 0.2s; }
+.features .plain::before, .features .feat::before { content: ""; position: absolute; left: 4px; top: 23px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); transition: border-radius 0.2s; }
 /* The row the animation is showing right now. */
 .features .feat.on { background: var(--bar); color: #fff; }
 .features .feat.on::before { border-radius: 1px; animation: beacon 1.2s ease-in-out infinite; }
 @keyframes beacon { 0%, 100% { box-shadow: 0 0 0 0 rgba(200, 16, 46, 0.45); } 50% { box-shadow: 0 0 0 5px rgba(200, 16, 46, 0); } }
 
-/* Pixel animation under the features: a small window with a stage bar and a log line. */
-.demo { margin-top: 28px; }
+/* Pixel animation: a small window with a stage bar and a log line, and an OK guy standing on it. */
+.demo { position: relative; margin-top: 55px; }
+.demo > .okguy { position: absolute; z-index: 1; right: 28px; top: -55px; width: 56px; height: auto; }
 .scene { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #140C0D; box-shadow: 0 24px 60px -30px #000; }
 .scene-bar { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 12px; background: var(--bar); border-bottom: 1px solid var(--border); font-size: 13px; }
 .scene-bar img { width: 16px; height: 16px; border-radius: 3px; }
@@ -157,11 +278,26 @@ img { display: block; max-width: 100%; height: auto; }
 .scene-cur { display: inline-block; width: 7px; height: 14px; margin-left: 2px; vertical-align: -2px; background: var(--accent); animation: blink 1.06s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 
-/* Background: a faint grid of dots on a canvas behind everything. */
-.bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
-.needs { margin: 0 0 32px; padding: 0 0 0 18px; }
-.needs li { margin: 4px 0; }
-.steps { counter-reset: step; list-style: none; margin: 0; padding: 0; }
+/* Install steps, folded until someone opens them (or downloads the app). */
+.install { margin-top: 96px; border: 1px solid var(--border); border-radius: 12px; background: rgba(23, 13, 14, 0.75); }
+.install-toggle { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: center; padding: 24px 28px;
+  font: inherit; color: inherit; text-align: left; background: none; border: 0; border-radius: 12px; cursor: pointer; }
+.install-title { font-size: 22px; font-weight: 700; }
+.install-sub { grid-row: 2; color: var(--muted); font-size: 14px; }
+.chev { grid-row: 1 / 3; grid-column: 2; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: grid; place-items: center;
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.2s, border-color 0.2s; }
+.chev::before { content: ""; width: 9px; height: 9px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); }
+.install-toggle:hover .chev { border-color: var(--accent); }
+.install.open .chev { transform: rotate(180deg); background: var(--accent); border-color: var(--accent); }
+.install-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.install.open .install-body { grid-template-rows: 1fr; }
+.install-inner { overflow: hidden; min-height: 0; }
+.install-grid { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: 48px; padding: 8px 28px 32px; opacity: 0; transform: translateY(-8px); transition: opacity 0.3s, transform 0.4s; }
+.install.open .install-grid { opacity: 1; transform: none; transition-delay: 0.1s; }
+.install-grid h3 { font-size: 18px; margin-bottom: 16px; }
+.needs { margin: 0; padding: 0 0 0 18px; }
+.needs li { margin: 6px 0; }
+.steps { counter-reset: step; list-style: none; margin: 0 0 8px; padding: 0; }
 .steps > li { counter-increment: step; position: relative; padding: 0 0 22px 48px; }
 .steps > li::before {
   content: counter(step); position: absolute; left: 0; top: -2px; width: 30px; height: 30px; border-radius: 50%;
@@ -179,41 +315,78 @@ img { display: block; max-width: 100%; height: auto; }
   border-radius: 4px; padding: 3px 8px; cursor: pointer; }
 .copy:hover { color: var(--text); border-color: var(--muted); }
 
-.note { margin-top: 28px; padding: 14px 16px; border-left: 2px solid var(--accent); background: var(--surface); font-size: 14px; }
+.note { margin-top: 20px; padding: 14px 16px; border-left: 2px solid var(--accent); background: var(--surface); font-size: 14px; }
 .note p { margin: 0; }
 .note p + p { margin-top: 8px; }
 
-footer { border-top: 1px solid var(--border); background: var(--bar); color: var(--muted); font-size: 13px; }
-footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22px; }
+/* Background: a faint grid of dots on a canvas behind everything. */
+.bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+
+/* Footer, with one more OK guy standing on it and waving goodbye. */
+footer { position: relative; border-top: 1px solid var(--border); background: var(--bar); color: var(--muted); font-size: 13px; }
+footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; padding-block: 28px; }
+.foot-guy { position: absolute; right: 24px; bottom: calc(100% - 12px); width: 56px; }
+.foot-guy .okguy { width: 100%; height: auto; }
+.foot-guy .say { top: -30px; left: -50px; font-size: 12px; padding: 4px 10px; animation: say 6s ease-in-out infinite; }
 
 [hidden] { display: none !important; }
 
 @media (max-width: 860px) {
-  .intro { padding-block-start: 40px; grid-template-columns: minmax(0, 1fr); gap: 32px; }
-  .intro h1 { font-size: 30px; }
-  .app { padding-block: 40px 48px; }
-  .app-head, .app-body { grid-template-columns: minmax(0, 1fr); gap: 32px; }
-  .app-body { margin-top: 40px; }
+  .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; padding-block: 40px 72px; gap: 8px; }
+  .hero-guy { order: -1; justify-self: end; width: 120px; }
+  .app { padding-block: 80px; }
+  .app-head, .app-how, .install-grid { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+  .app-how { margin-top: 80px; }
+  .install { margin-top: 64px; }
+  .demo { margin-top: 24px; }
   .topbar nav { gap: 16px; }
 }
 @media (max-width: 520px) {
   .wrap { padding-inline: 16px; }
   body { font-size: 14px; }
   .brand span { display: none; }
-  .jump .what { display: none; }
   .topbar .wrap { gap: 14px; }
   .topbar nav { gap: 12px; font-size: 13px; }
+  .hero-lede { font-size: 16px; }
+  .picks { grid-template-columns: minmax(0, 1fr); }
+  .dl { display: block; }
   .download { width: 100%; justify-content: center; }
   .phone + .phone { margin-top: 32px; }
+  .install-toggle { padding: 20px; }
+  .install-grid { padding: 4px 20px 24px; }
+  .foot-guy { right: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .swap, .features .feat.on::before, .scene-cur { animation: none; }
-  .jump .arr { transition: none; }
+  .vault { display: none; }
+  .swap, .features .feat.on::before, .scene-cur, .okguy, .okguy *, .js .hero-text > *, .js .hero-guy { animation: none !important; }
+  .say { animation: none; opacity: 1; }
+  .js .reveal { opacity: 1; transform: none; transition: none; }
+  .pick, .pick .arr, .install-body, .install-grid, .chev, .guy-peek { transition: none; }
 }
 </style>
+<script>document.documentElement.classList.add('js')</script>
 </head>
 <body>
+<!-- Loading screen: a vault door. The dial turns, the bolts slide back, the OK guy waves and the door swings open. Pure CSS, so it also ends without JavaScript. -->
+<div class="vault" aria-hidden="true">
+  <div class="vault-door">
+    <svg viewBox="0 0 200 200">
+      <circle cx="100" cy="100" r="98" fill="#170D0E" stroke="#4A1218" stroke-width="2"/>
+      <g fill="#7A1424"><g transform="rotate(0 100 100)"><rect class="vault-bolt" x="170" y="95" width="26" height="10" rx="2"/></g><g transform="rotate(45 100 100)"><rect class="vault-bolt" x="170" y="95" width="26" height="10" rx="2"/></g><g transform="rotate(90 100 100)"><rect class="vault-bolt" x="170" y="95" width="26" height="10" rx="2"/></g><g transform="rotate(135 100 100)"><rect class="vault-bolt" x="170" y="95" width="26" height="10" rx="2"/></g><g transform="rotate(180 100 100)"><rect class="vault-bolt" x="170" y="95" width="26" height="10" rx="2"/></g><g transform="rotate(225 100 100)"><rect class="vault-bolt" x="170" y="95" width="26" height="10" rx="2"/></g><g transform="rotate(270 100 100)"><rect class="vault-bolt" x="170" y="95" width="26" height="10" rx="2"/></g><g transform="rotate(315 100 100)"><rect class="vault-bolt" x="170" y="95" width="26" height="10" rx="2"/></g></g>
+      <circle cx="100" cy="100" r="84" fill="#1E1012" stroke="#4A1218" stroke-width="2"/>
+      <g fill="#4A1218"><circle cx="173.41" cy="119.67" r="2.6"/><circle cx="153.74" cy="153.74" r="2.6"/><circle cx="119.67" cy="173.41" r="2.6"/><circle cx="80.33" cy="173.41" r="2.6"/><circle cx="46.26" cy="153.74" r="2.6"/><circle cx="26.59" cy="119.67" r="2.6"/><circle cx="26.59" cy="80.33" r="2.6"/><circle cx="46.26" cy="46.26" r="2.6"/><circle cx="80.33" cy="26.59" r="2.6"/><circle cx="119.67" cy="26.59" r="2.6"/><circle cx="153.74" cy="46.26" r="2.6"/><circle cx="173.41" cy="80.33" r="2.6"/></g>
+      <circle class="vault-glow" cx="100" cy="100" r="84" fill="none" stroke="#C8102E" stroke-width="4"/>
+      <g class="vault-dial">
+        <circle cx="100" cy="100" r="62" fill="none" stroke="#2E1418" stroke-width="12"/>
+        <line x1="157" y1="100" x2="167" y2="100" stroke="#A88A8C" stroke-width="2.4"/><line x1="158.6" y1="110.33" x2="163.52" y2="111.2" stroke="#4A1218" stroke-width="1.6"/><line x1="155.91" y1="120.35" x2="160.61" y2="122.06" stroke="#4A1218" stroke-width="1.6"/><line x1="151.53" y1="129.75" x2="155.86" y2="132.25" stroke="#4A1218" stroke-width="1.6"/><line x1="145.58" y1="138.25" x2="149.41" y2="141.46" stroke="#4A1218" stroke-width="1.6"/><line x1="138.25" y1="145.58" x2="141.46" y2="149.41" stroke="#4A1218" stroke-width="1.6"/><line x1="129.75" y1="151.53" x2="132.25" y2="155.86" stroke="#4A1218" stroke-width="1.6"/><line x1="120.35" y1="155.91" x2="122.06" y2="160.61" stroke="#4A1218" stroke-width="1.6"/><line x1="110.33" y1="158.6" x2="111.2" y2="163.52" stroke="#4A1218" stroke-width="1.6"/><line x1="100" y1="157" x2="100" y2="167" stroke="#A88A8C" stroke-width="2.4"/><line x1="89.67" y1="158.6" x2="88.8" y2="163.52" stroke="#4A1218" stroke-width="1.6"/><line x1="79.65" y1="155.91" x2="77.94" y2="160.61" stroke="#4A1218" stroke-width="1.6"/><line x1="70.25" y1="151.53" x2="67.75" y2="155.86" stroke="#4A1218" stroke-width="1.6"/><line x1="61.75" y1="145.58" x2="58.54" y2="149.41" stroke="#4A1218" stroke-width="1.6"/><line x1="54.42" y1="138.25" x2="50.59" y2="141.46" stroke="#4A1218" stroke-width="1.6"/><line x1="48.47" y1="129.75" x2="44.14" y2="132.25" stroke="#4A1218" stroke-width="1.6"/><line x1="44.09" y1="120.35" x2="39.39" y2="122.06" stroke="#4A1218" stroke-width="1.6"/><line x1="41.4" y1="110.33" x2="36.48" y2="111.2" stroke="#4A1218" stroke-width="1.6"/><line x1="43" y1="100" x2="33" y2="100" stroke="#A88A8C" stroke-width="2.4"/><line x1="41.4" y1="89.67" x2="36.48" y2="88.8" stroke="#4A1218" stroke-width="1.6"/><line x1="44.09" y1="79.65" x2="39.39" y2="77.94" stroke="#4A1218" stroke-width="1.6"/><line x1="48.47" y1="70.25" x2="44.14" y2="67.75" stroke="#4A1218" stroke-width="1.6"/><line x1="54.42" y1="61.75" x2="50.59" y2="58.54" stroke="#4A1218" stroke-width="1.6"/><line x1="61.75" y1="54.42" x2="58.54" y2="50.59" stroke="#4A1218" stroke-width="1.6"/><line x1="70.25" y1="48.47" x2="67.75" y2="44.14" stroke="#4A1218" stroke-width="1.6"/><line x1="79.65" y1="44.09" x2="77.94" y2="39.39" stroke="#4A1218" stroke-width="1.6"/><line x1="89.67" y1="41.4" x2="88.8" y2="36.48" stroke="#4A1218" stroke-width="1.6"/><line x1="100" y1="43" x2="100" y2="33" stroke="#A88A8C" stroke-width="2.4"/><line x1="110.33" y1="41.4" x2="111.2" y2="36.48" stroke="#4A1218" stroke-width="1.6"/><line x1="120.35" y1="44.09" x2="122.06" y2="39.39" stroke="#4A1218" stroke-width="1.6"/><line x1="129.75" y1="48.47" x2="132.25" y2="44.14" stroke="#4A1218" stroke-width="1.6"/><line x1="138.25" y1="54.42" x2="141.46" y2="50.59" stroke="#4A1218" stroke-width="1.6"/><line x1="145.58" y1="61.75" x2="149.41" y2="58.54" stroke="#4A1218" stroke-width="1.6"/><line x1="151.53" y1="70.25" x2="155.86" y2="67.75" stroke="#4A1218" stroke-width="1.6"/><line x1="155.91" y1="79.65" x2="160.61" y2="77.94" stroke="#4A1218" stroke-width="1.6"/><line x1="158.6" y1="89.67" x2="163.52" y2="88.8" stroke="#4A1218" stroke-width="1.6"/>
+        <path d="M100 31l5 8h-10z" fill="#C8102E"/>
+      </g>
+      <circle cx="100" cy="100" r="46" fill="#0E0A0A" stroke="#4A1218" stroke-width="2"/>
+      <g class="okguy" transform="translate(60 57.6) scale(0.8)"><g class="okguy-body"><g class="okguy-legs"><path class="okguy-leg okguy-leg-l" d="M50 58 28 98"/><path class="okguy-leg okguy-leg-r" d="M50 58 72 98"/></g><path class="okguy-torso" d="M36 56H64"/><path class="okguy-arm okguy-arm-l" d="M36 56H18"/><path class="okguy-arm okguy-arm-r" d="M64 56H82"/><circle class="okguy-head" cx="50" cy="28" r="20"/><g class="okguy-face"><ellipse cx="44" cy="25" rx="2.4" ry="3.2"/><ellipse cx="56" cy="25" rx="2.4" ry="3.2"/><path class="okguy-mouth" d="M44 33q6 5 12 0"/></g></g></g>
+    </svg>
+  </div>
+</div>
 <canvas class="bg" aria-hidden="true"></canvas>
 
 <header class="topbar">
@@ -232,30 +405,29 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
 </header>
 
 <main>
-  <section class="intro wrap">
-    <div>
-      <h1><span data-i18n="t0">Chat bez serveru a trezor na hesla</span></h1>
-      <p data-i18n="t1">Dvě aplikace pro Windows, Linux, macOS a Android. Zdarma, bez reklam a s otevřeným zdrojovým kódem. Vyberte aplikaci, zvolte PC nebo telefon a stáhněte si ji.</p>
+  <section class="hero wrap">
+    <div class="hero-text">
+      <p class="kicker" data-i18n="t72">Zdarma · bez reklam · otevřený kód</p>
+      <h1 style="--i: 1"><span data-i18n="t0">Chat bez serveru a trezor na hesla</span></h1>
+      <p class="hero-lede" style="--i: 2" data-i18n="t1">Dvě aplikace pro Windows, Linux, macOS a Android.</p>
+      <div class="picks" style="--i: 3">
+        <a class="pick" href="#okfetch"><span class="n">01</span><span><b>OKfetch</b><small data-i18n="t67">chat bez serveru</small></span><span class="arr" aria-hidden="true">→</span></a>
+        <a class="pick" href="#okpass"><span class="n">02</span><span><b>OKpass</b><small data-i18n="t68">trezor na hesla a poznámky</small></span><span class="arr" aria-hidden="true">→</span></a>
+      </div>
     </div>
-    <ol class="jump">
-      <li><a href="#okfetch"><span class="n">01</span><span class="name">OKfetch</span><span class="what" data-i18n="t67">chat bez serveru</span><span class="arr" aria-hidden="true">→</span></a></li>
-      <li><a href="#okpass"><span class="n">02</span><span class="name">OKpass</span><span class="what" data-i18n="t68">trezor na hesla a poznámky</span><span class="arr" aria-hidden="true">→</span></a></li>
-    </ol>
+    <div class="hero-guy" style="--i: 2" aria-hidden="true">
+      <span class="say" data-i18n="t73">Ahoj!</span>
+      <svg class="okguy guy-greeter" viewBox="0 0 100 120" aria-hidden="true" data-tap><g class="okguy-body"><g class="okguy-legs"><path class="okguy-leg okguy-leg-l" d="M50 58 28 98"/><path class="okguy-leg okguy-leg-r" d="M50 58 72 98"/></g><path class="okguy-torso" d="M36 56H64"/><path class="okguy-arm okguy-arm-l" d="M36 56H18"/><path class="okguy-arm okguy-arm-r" d="M64 56H82"/><circle class="okguy-head" cx="50" cy="28" r="20"/><g class="okguy-face"><ellipse cx="44" cy="25" rx="2.4" ry="3.2"/><ellipse cx="56" cy="25" rx="2.4" ry="3.2"/><path class="okguy-mouth" d="M44 33q6 5 12 0"/></g></g></svg>
+    </div>
   </section>
 
   <!-- OKfetch -->
   <section class="app wrap" id="okfetch" data-app>
     <div class="app-head">
-      <div>
+      <div class="app-intro reveal">
         <p class="eyebrow" data-i18n="t65"><b>01</b> / chat bez serveru</p>
         <h2><img src="assets/img/icon.png" alt="">OKfetch</h2>
         <p class="lede" data-i18n="t2">Zprávy, soubory a skupiny posílané přímo mezi zařízeními. Nepotřebuje server ani účet, kontakt přidáte identifikátorem a heslem.</p>
-        <ul class="stack" aria-label="Technologie" data-i18n-aria="Technology">
-          <li>Hyperswarm</li>
-          <li>XChaCha20-Poly1305</li>
-          <li>Ed25519 / X25519</li>
-          <li>Nostr relay</li>
-        </ul>
 
         <div class="platforms" role="tablist" aria-label="Platforma OKfetch" data-i18n-aria="OKfetch platform">
           <button role="tab" id="okfetch-tab-pc" aria-controls="okfetch-pc" aria-selected="true" data-platform="pc">PC</button>
@@ -263,23 +435,23 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
         </div>
 
         <div data-for="pc" id="okfetch-pc" role="tabpanel" aria-labelledby="okfetch-tab-pc">
-          <button class="download" type="button" data-zip="OKfetch/OKfetch - WinLinMac" data-zip-name="OKfetch-WinLinMac.zip">
+          <div class="dl"><span class="peek-box" aria-hidden="true"><svg class="okguy guy-peek" viewBox="0 0 100 120" aria-hidden="true"><g class="okguy-body"><g class="okguy-legs"><path class="okguy-leg okguy-leg-l" d="M50 58 28 98"/><path class="okguy-leg okguy-leg-r" d="M50 58 72 98"/></g><path class="okguy-torso" d="M36 56H64"/><path class="okguy-arm okguy-arm-l" d="M36 56H18"/><path class="okguy-arm okguy-arm-r" d="M64 56H82"/><circle class="okguy-head" cx="50" cy="28" r="20"/><g class="okguy-face"><ellipse cx="44" cy="25" rx="2.4" ry="3.2"/><ellipse cx="56" cy="25" rx="2.4" ry="3.2"/><path class="okguy-mouth" d="M44 33q6 5 12 0"/></g></g></svg></span><button class="download" type="button" data-zip="OKfetch/OKfetch - WinLinMac" data-zip-name="OKfetch-WinLinMac.zip">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
             <span data-i18n="t4">Stáhnout pro PC (ZIP)</span>
-          </button>
+          </button></div>
           <p class="download-meta" data-i18n="t5">Zdrojový kód pro Windows, Linux a macOS. Spustíte ho přes Node.js, postup je níže.</p>
           <p class="download-error" hidden></p>
         </div>
         <div data-for="phone" id="okfetch-phone" role="tabpanel" aria-labelledby="okfetch-tab-phone" hidden>
-          <a class="download" href="OKfetch/OKfetch%20-%20Android/OKfetch.apk" download>
+          <div class="dl"><span class="peek-box" aria-hidden="true"><svg class="okguy guy-peek" viewBox="0 0 100 120" aria-hidden="true"><g class="okguy-body"><g class="okguy-legs"><path class="okguy-leg okguy-leg-l" d="M50 58 28 98"/><path class="okguy-leg okguy-leg-r" d="M50 58 72 98"/></g><path class="okguy-torso" d="M36 56H64"/><path class="okguy-arm okguy-arm-l" d="M36 56H18"/><path class="okguy-arm okguy-arm-r" d="M64 56H82"/><circle class="okguy-head" cx="50" cy="28" r="20"/><g class="okguy-face"><ellipse cx="44" cy="25" rx="2.4" ry="3.2"/><ellipse cx="56" cy="25" rx="2.4" ry="3.2"/><path class="okguy-mouth" d="M44 33q6 5 12 0"/></g></g></svg></span><a class="download" href="OKfetch/OKfetch%20-%20Android/OKfetch.apk" download>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
             <span data-i18n="t6">Stáhnout OKfetch.apk</span>
-          </a>
+          </a></div>
           <p class="download-meta" data-i18n="t8">Android 10 a novější, 66 MB.</p>
         </div>
       </div>
 
-      <figure class="shot">
+      <figure class="shot reveal" style="--i: 1">
         <div data-for="pc">
           <div class="window">
             <div class="window-bar"><img src="assets/img/icon.png" alt="">OKfetch<span aria-hidden="true">– □ ×</span></div>
@@ -297,8 +469,8 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
       </figure>
     </div>
 
-    <div class="app-body">
-      <div>
+    <div class="app-how">
+      <div class="app-feats reveal">
         <h3 data-i18n="t11">Co umí</h3>
         <!-- data-stages: while the animation shows these stages, the row lights up. -->
         <ul class="features">
@@ -309,22 +481,35 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
           <li><span class="feat" data-stages="4" data-i18n="t18">Ověřovací kód potvrdí, že mezi vámi a kontaktem nikdo není.</span></li>
           <li><span class="plain" data-i18n="t19">Na telefonu: odemykání otiskem prstu, odpověď z notifikace, sdílení z jiných aplikací a záloha.</span></li>
         </ul>
-        <div class="demo">
-          <div class="scene" data-scene="okfetch">
+      </div>
+      <div class="demo reveal" style="--i: 1">
+        <svg class="okguy guy-stretch" viewBox="0 0 100 120" aria-hidden="true" data-tap><g class="okguy-body"><g class="okguy-legs"><path class="okguy-leg okguy-leg-l" d="M50 58 28 98"/><path class="okguy-leg okguy-leg-r" d="M50 58 72 98"/></g><path class="okguy-torso" d="M36 56H64"/><path class="okguy-arm okguy-arm-l" d="M36 56H18"/><path class="okguy-arm okguy-arm-r" d="M64 56H82"/><circle class="okguy-head" cx="50" cy="28" r="20"/><g class="okguy-face"><ellipse cx="44" cy="25" rx="2.4" ry="3.2"/><ellipse cx="56" cy="25" rx="2.4" ry="3.2"/><path class="okguy-mouth" d="M44 33q6 5 12 0"/></g></g></svg>
+        <div class="scene" data-scene="okfetch">
             <div class="scene-bar"><img src="assets/img/icon.png" alt=""><b>OKfetch</b><span class="scene-stage"></span><span class="scene-segs" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="scene-no"></span></div>
             <canvas role="img" aria-label="Animace: OKfetch najde kontakt v síti DHT a spojí se s ním napřímo. Zpráva se zašifruje už v počítači, po cestě je z ní jen šum a telefon ji rozšifruje. Oba pak porovnají ověřovací kód. Když přímé spojení nejde, odpověď jde šifrovaně přes relay." data-i18n-aria="Animation: OKfetch finds the contact in the DHT and connects to it directly. The message is encrypted on the computer, travels as noise and the phone decrypts it. Both then compare the verification code. When a direct connection is not possible, the reply goes encrypted through a relay."></canvas>
             <div class="scene-log"><p class="scene-prev" aria-hidden="true"></p><p><span aria-hidden="true">&gt;</span><span><span class="scene-text"></span><span class="scene-cur" aria-hidden="true"></span></span></p></div>
           </div>
-        </div>
       </div>
+    </div>
 
-      <div data-for="pc">
+    <div class="install reveal">
+      <button class="install-toggle" type="button" aria-expanded="false" aria-controls="okfetch-install">
+        <span class="install-title" data-i18n="t74">Jak nainstalovat</span>
+        <span class="install-sub" data-i18n="t75">Co potřebujete a postup krok za krokem</span>
+        <span class="chev" aria-hidden="true"></span>
+      </button>
+      <div class="install-body" id="okfetch-install" inert>
+        <div class="install-inner">
+        <div data-for="pc" class="install-grid">
+          <div>
         <h3 data-i18n="t12">Co potřebujete</h3>
         <ul class="needs">
           <li data-i18n="t20">Windows 10 nebo 11, Linux nebo macOS</li>
           <li data-i18n="t21"><a href="https://nodejs.org">Node.js</a> 20 nebo novější (verze LTS)</li>
           <li data-i18n="t22">Připojení k internetu, žádné porty se otevírat nemusí</li>
         </ul>
+          </div>
+          <div>
         <h3 data-i18n="t13">Instalace</h3>
         <ol class="steps">
           <li><p data-i18n="t23">Stáhněte ZIP a rozbalte ho. Vznikne složka <code>OKfetch - WinLinMac</code>.</p></li>
@@ -341,14 +526,17 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
           <p data-i18n="t31">Instalátor není podepsaný certifikátem vydavatele. Když Windows zobrazí upozornění, klikněte na Další informace a pak na Přesto spustit.</p>
           <p data-i18n="t32">Aby se dva lidé spojili přes mobilní data, potřebují oba aktuální verzi.</p>
         </div>
-      </div>
-
-      <div data-for="phone" hidden>
+          </div>
+        </div>
+        <div data-for="phone" class="install-grid" hidden>
+          <div>
         <h3 data-i18n="t12">Co potřebujete</h3>
         <ul class="needs">
           <li data-i18n="t33">Telefon s Androidem 10 nebo novějším</li>
           <li data-i18n="t34">Povolenou instalaci aplikací z neznámých zdrojů</li>
         </ul>
+          </div>
+          <div>
         <h3 data-i18n="t13">Instalace</h3>
         <ol class="steps">
           <li><p data-i18n="t35">Stáhněte <code>OKfetch.apk</code> přímo v telefonu, nebo ho do telefonu zkopírujte.</p></li>
@@ -359,6 +547,9 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
         <div class="note">
           <p data-i18n="t40">Novou verzi nainstalujte přes starou, data zůstanou. Data jsou jen v telefonu, takže si v Nastavení dělejte zálohu.</p>
         </div>
+          </div>
+        </div>
+        </div>
       </div>
     </div>
   </section>
@@ -366,15 +557,10 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
   <!-- OKpass -->
   <section class="app wrap" id="okpass" data-app>
     <div class="app-head">
-      <div>
+      <div class="app-intro reveal">
         <p class="eyebrow" data-i18n="t66"><b>02</b> / trezor na hesla a poznámky</p>
         <h2><img src="assets/img/icon.png" alt="">OKpass</h2>
         <p class="lede" data-i18n="t41">Šifrovaný správce hesel a poznámek. Trezor leží na vašem Google Disku a šifruje se na zařízení, ještě než se nahraje.</p>
-        <ul class="stack" aria-label="Technologie" data-i18n-aria="Technology">
-          <li>Argon2id</li>
-          <li>AES-256-GCM</li>
-          <li data-i18n="t69">Google Disk</li>
-        </ul>
 
         <div class="platforms" role="tablist" aria-label="Platforma OKpass" data-i18n-aria="OKpass platform">
           <button role="tab" id="okpass-tab-pc" aria-controls="okpass-pc" aria-selected="true" data-platform="pc">PC</button>
@@ -382,23 +568,23 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
         </div>
 
         <div data-for="pc" id="okpass-pc" role="tabpanel" aria-labelledby="okpass-tab-pc">
-          <button class="download" type="button" data-zip="OKpass/OKpass - WinLinMac" data-zip-name="OKpass-WinLinMac.zip">
+          <div class="dl"><span class="peek-box" aria-hidden="true"><svg class="okguy guy-peek" viewBox="0 0 100 120" aria-hidden="true"><g class="okguy-body"><g class="okguy-legs"><path class="okguy-leg okguy-leg-l" d="M50 58 28 98"/><path class="okguy-leg okguy-leg-r" d="M50 58 72 98"/></g><path class="okguy-torso" d="M36 56H64"/><path class="okguy-arm okguy-arm-l" d="M36 56H18"/><path class="okguy-arm okguy-arm-r" d="M64 56H82"/><circle class="okguy-head" cx="50" cy="28" r="20"/><g class="okguy-face"><ellipse cx="44" cy="25" rx="2.4" ry="3.2"/><ellipse cx="56" cy="25" rx="2.4" ry="3.2"/><path class="okguy-mouth" d="M44 33q6 5 12 0"/></g></g></svg></span><button class="download" type="button" data-zip="OKpass/OKpass - WinLinMac" data-zip-name="OKpass-WinLinMac.zip">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
             <span data-i18n="t4">Stáhnout pro PC (ZIP)</span>
-          </button>
+          </button></div>
           <p class="download-meta" data-i18n="t5">Zdrojový kód pro Windows, Linux a macOS. Spustíte ho přes Node.js, postup je níže.</p>
           <p class="download-error" hidden></p>
         </div>
         <div data-for="phone" id="okpass-phone" role="tabpanel" aria-labelledby="okpass-tab-phone" hidden>
-          <a class="download" href="OKpass/OKpass%20-%20Android/OKpass.apk" download>
+          <div class="dl"><span class="peek-box" aria-hidden="true"><svg class="okguy guy-peek" viewBox="0 0 100 120" aria-hidden="true"><g class="okguy-body"><g class="okguy-legs"><path class="okguy-leg okguy-leg-l" d="M50 58 28 98"/><path class="okguy-leg okguy-leg-r" d="M50 58 72 98"/></g><path class="okguy-torso" d="M36 56H64"/><path class="okguy-arm okguy-arm-l" d="M36 56H18"/><path class="okguy-arm okguy-arm-r" d="M64 56H82"/><circle class="okguy-head" cx="50" cy="28" r="20"/><g class="okguy-face"><ellipse cx="44" cy="25" rx="2.4" ry="3.2"/><ellipse cx="56" cy="25" rx="2.4" ry="3.2"/><path class="okguy-mouth" d="M44 33q6 5 12 0"/></g></g></svg></span><a class="download" href="OKpass/OKpass%20-%20Android/OKpass.apk" download>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
             <span data-i18n="t7">Stáhnout OKpass.apk</span>
-          </a>
+          </a></div>
           <p class="download-meta" data-i18n="t42">Android 7.0 a novější se službami Google Play, 4,4 MB.</p>
         </div>
       </div>
 
-      <figure class="shot">
+      <figure class="shot reveal" style="--i: 1">
         <div data-for="pc">
           <div class="window">
             <div class="window-bar"><img src="assets/img/icon.png" alt="">OKpass<span aria-hidden="true">– □ ×</span></div>
@@ -415,9 +601,10 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
       </figure>
     </div>
 
-    <div class="app-body">
-      <div>
+    <div class="app-how">
+      <div class="app-feats reveal">
         <h3 data-i18n="t11">Co umí</h3>
+        <!-- data-stages: while the animation shows these stages, the row lights up. -->
         <ul class="features">
           <li><span class="plain" data-i18n="t45">Textové dokumenty s nadpisy, tučným písmem, kurzívou a odsazením.</span></li>
           <li><span class="feat" data-stages="1" data-i18n="t46">Hesla s vlastními poli, generátorem a měřičem síly.</span></li>
@@ -426,22 +613,35 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
           <li><span class="feat" data-stages="2 5" data-i18n="t49">Po nečinnosti se sám zamkne. Na telefonu odemknete otiskem prstu.</span></li>
           <li><span class="feat" data-stages="5" data-i18n="t50">Stejný trezor a stejný klíč na počítači i telefonu.</span></li>
         </ul>
-        <div class="demo">
-          <div class="scene" data-scene="okpass">
+      </div>
+      <div class="demo reveal" style="--i: 1">
+        <svg class="okguy guy-chameleon" viewBox="0 0 100 120" aria-hidden="true" data-tap><g class="okguy-body"><g class="okguy-legs"><path class="okguy-leg okguy-leg-l" d="M50 58 28 98"/><path class="okguy-leg okguy-leg-r" d="M50 58 72 98"/></g><path class="okguy-torso" d="M36 56H64"/><path class="okguy-arm okguy-arm-l" d="M36 56H18"/><path class="okguy-arm okguy-arm-r" d="M64 56H82"/><circle class="okguy-head" cx="50" cy="28" r="20"/><g class="okguy-face"><ellipse cx="44" cy="25" rx="2.4" ry="3.2"/><ellipse cx="56" cy="25" rx="2.4" ry="3.2"/><path class="okguy-mouth" d="M44 33q6 5 12 0"/></g></g></svg>
+        <div class="scene" data-scene="okpass">
             <div class="scene-bar"><img src="assets/img/icon.png" alt=""><b>OKpass</b><span class="scene-stage"></span><span class="scene-segs" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="scene-no"></span></div>
             <canvas role="img" aria-label="Animace: na Google Disku je trezor jen šifrovaný šum. Správný klíč otevře skutečná hesla a po nečinnosti se trezor sám zamkne. Druhý klíč otevře klamný trezor, špatný klíč ukáže věrohodná falešná data. Na telefonu se stejný trezor odemkne otiskem prstu." data-i18n-aria="Animation: on Google Drive the vault is only encrypted noise. The right key opens the real passwords and the vault locks itself when idle. A second key opens a decoy vault, a wrong key shows believable fake data. On the phone the same vault unlocks with a fingerprint."></canvas>
             <div class="scene-log"><p class="scene-prev" aria-hidden="true"></p><p><span aria-hidden="true">&gt;</span><span><span class="scene-text"></span><span class="scene-cur" aria-hidden="true"></span></span></p></div>
           </div>
-        </div>
       </div>
+    </div>
 
-      <div data-for="pc">
+    <div class="install reveal">
+      <button class="install-toggle" type="button" aria-expanded="false" aria-controls="okpass-install">
+        <span class="install-title" data-i18n="t74">Jak nainstalovat</span>
+        <span class="install-sub" data-i18n="t75">Co potřebujete a postup krok za krokem</span>
+        <span class="chev" aria-hidden="true"></span>
+      </button>
+      <div class="install-body" id="okpass-install" inert>
+        <div class="install-inner">
+        <div data-for="pc" class="install-grid">
+          <div>
         <h3 data-i18n="t12">Co potřebujete</h3>
         <ul class="needs">
           <li data-i18n="t20">Windows 10 nebo 11, Linux nebo macOS</li>
           <li data-i18n="t21"><a href="https://nodejs.org">Node.js</a> 20 nebo novější (verze LTS)</li>
           <li data-i18n="t51">Google účet a projekt v <a href="https://console.cloud.google.com">Google Cloud Console</a> se zapnutým Google Drive API</li>
         </ul>
+          </div>
+          <div>
         <h3 data-i18n="t13">Instalace</h3>
         <ol class="steps">
           <li><p data-i18n="t24">Stáhněte ZIP a rozbalte ho. Vznikne složka <code>OKpass - WinLinMac</code>.</p></li>
@@ -457,14 +657,17 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
         <div class="note">
           <p data-i18n="t54">Aplikace vidí jen soubory, které sama vytvořila. Při přihlášení se může objevit hláška, že Google aplikaci neověřil. Pokračujte přes Continue.</p>
         </div>
-      </div>
-
-      <div data-for="phone" hidden>
+          </div>
+        </div>
+        <div data-for="phone" class="install-grid" hidden>
+          <div>
         <h3 data-i18n="t12">Co potřebujete</h3>
         <ul class="needs">
           <li data-i18n="t55">Telefon s Androidem 7.0 nebo novějším a službami Google Play</li>
           <li data-i18n="t56">Google účet, ve kterém už je trezor z počítače, nebo nový</li>
         </ul>
+          </div>
+          <div>
         <h3 data-i18n="t13">Instalace</h3>
         <ol class="steps">
           <li><p data-i18n="t36">Stáhněte <code>OKpass.apk</code> přímo v telefonu, nebo ho do telefonu zkopírujte.</p></li>
@@ -474,6 +677,9 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
         </ol>
         <div class="note">
           <p data-i18n="t60">Telefon i počítač musí mít přihlášení ve stejném Google Cloud projektu, jinak telefon trezor z počítače neuvidí. Postup je v <a href="https://github.com/OpiKula2877/Apps/tree/main/OKpass#nastaven%C3%AD-google-p%C5%99ihl%C3%A1%C5%A1en%C3%AD-jednou">README OKpass</a>.</p>
+        </div>
+          </div>
+        </div>
         </div>
       </div>
     </div>
@@ -485,6 +691,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
     <a href="https://github.com/OpiKula2877/Apps" data-i18n="t61">Zdrojový kód na GitHubu</a>
     <span data-i18n="t62">Licence MIT</span>
     <span data-i18n="t63">Aplikace jsou zdarma a bez reklam.</span>
+    <div class="foot-guy" aria-hidden="true"><span class="say" data-i18n="t76">Čau!</span><svg class="okguy guy-dancer" viewBox="0 0 100 120" aria-hidden="true" data-tap><g class="okguy-body"><g class="okguy-legs"><path class="okguy-leg okguy-leg-l" d="M50 58 28 98"/><path class="okguy-leg okguy-leg-r" d="M50 58 72 98"/></g><path class="okguy-torso" d="M36 56H64"/><path class="okguy-arm okguy-arm-l" d="M36 56H18"/><path class="okguy-arm okguy-arm-r" d="M64 56H82"/><circle class="okguy-head" cx="50" cy="28" r="20"/><g class="okguy-face"><ellipse cx="44" cy="25" rx="2.4" ry="3.2"/><ellipse cx="56" cy="25" rx="2.4" ry="3.2"/><path class="okguy-mouth" d="M44 33q6 5 12 0"/></g></g></svg></div>
   </div>
 </footer>
 
@@ -497,7 +704,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
   // CZ / EN. Czech is in the HTML; English replaces it and the Czech original comes back from ORIG.
   const EN = {
     "t0": "A chat without a server and a password vault",
-    "t1": "Two apps for Windows, Linux, macOS and Android. Free, without ads and open source. Pick an app, choose PC or phone and download it.",
+    "t1": "Two apps for Windows, Linux, macOS and Android.",
     "t2": "Messages, files and groups sent directly between devices. No server or account needed: you add a contact with an identifier and a password.",
     "t3": "Phone",
     "t4": "Download for PC (ZIP)",
@@ -565,7 +772,11 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
     "t66": "<b>02</b> / vault for passwords and notes",
     "t67": "chat without a server",
     "t68": "vault for passwords and notes",
-    "t69": "Google Drive"
+    "t72": "Free · no ads · open source",
+    "t73": "Hi!",
+    "t74": "How to install",
+    "t75": "What you need and the steps",
+    "t76": "Bye!"
   }
   const MSG = {
     cs: { title: 'OKfetch a OKpass – stažení', copy: 'Kopírovat', copied: 'Zkopírováno', copyFail: 'Nejde kopírovat',
@@ -678,7 +889,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
 
   for (const button of document.querySelectorAll('[data-zip]')) {
     const label = button.querySelector('span')
-    const error = button.parentElement.querySelector('.download-error')
+    const error = button.closest('[data-for]').querySelector('.download-error')
     button.addEventListener('click', async () => {
       const folder = button.dataset.zip
       const parent = folder.slice(0, folder.lastIndexOf('/') + 1)
@@ -1078,16 +1289,16 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
       this.rect(28, 18, 2, 2, t >= 2300 ? 9 : 3)
       this.rect(6, 23, 38, 1, 2)
       if (t < 2600) return
-      const hi = this.word(['AHOJ!', 'HELLO'])
-      const typed = Math.min(5, Math.max(0, Math.floor((t - 2600) / 180)))
+      const hi = this.hi(), bx = this.bubbleX()
+      const typed = Math.min(hi.length, Math.max(0, Math.floor((t - 2600) / 180)))
       const sealed = t >= 3700 && t < 5900
-      this.rect(21, 26, t < 3700 ? Math.max(3, typed * 4 + 2) : 21, 7, sealed ? 2 : 5)
+      this.rect(bx, 26, t < 3700 ? Math.max(3, typed * 4 + 2) : hi.length * 4 + 1, 7, sealed ? 2 : 5)
       for (let i = 0; i < typed; i++) {
         const enc = t >= 3700 + i * 120 && t < 5200 + i * 140
-        this.glyph(enc ? this.ciph(i, t) : hi[i], 22 + i * 4, 27, enc ? 6 : 7)
+        this.glyph(enc ? this.ciph(i, t) : hi[i], bx + 1 + i * 4, 27, enc ? 6 : 7)
       }
-      if (t < 3700 && Math.floor(t / 260) % 2 === 0) this.rect(22 + typed * 4, 27, 1, 5, 7)
-      if (t >= 4300 && t < 5900) this.sprite(LOCK, 15, 27, 5)
+      if (t < 3700 && Math.floor(t / 260) % 2 === 0) this.rect(bx + 1 + typed * 4, 27, 1, 5, 7)
+      if (t >= 4300 && t < 5900) this.sprite(LOCK, bx - 6, 27, 5)
       if (t >= 8500) this.sprite(CHECK, 33, 34, t >= 9000 ? 9 : 8)
       if (t >= 9000) this.sprite(CHECK, 36, 34, 9)
       if (t >= 15400) {
@@ -1107,10 +1318,10 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
       this.rect(115, 17, 2, 2, t >= 2300 ? 9 : 3)
       this.rect(100, 22, 23, 1, 2)
       if (t >= 6700) {
-        const hi = this.word(['AHOJ!', 'HELLO'])
-        this.rect(101, 25, 21, 7, 2)
-        if (t >= 8300 && t < 8800 && Math.floor(t / 100) % 2 === 0) this.frame(101, 25, 21, 7, 9)
-        for (let i = 0; i < 5; i++) {
+        const hi = this.hi(), w = hi.length * 4 + 1
+        this.rect(101, 25, w, 7, 2)
+        if (t >= 8300 && t < 8800 && Math.floor(t / 100) % 2 === 0) this.frame(101, 25, w, 7, 9)
+        for (let i = 0; i < hi.length; i++) {
           const a = 6700 + i * 140, d = 7500 + i * 130
           if (t < a) continue
           this.glyph(t < d ? this.ciph(i + 20, t) : hi[i], 102 + i * 4, 26, t < d ? 6 : 7)
@@ -1128,7 +1339,10 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
       }
     }
 
-    route(i) { return [[23 + i * 4, 29], [47, 29], [97, 29], [103 + i * 4, 28]] }
+    // The first message: AHOJ! in Czech, HI! in English, right-aligned on the PC screen like a sent message.
+    hi() { return this.word(['AHOJ!', 'HI!']) }
+    bubbleX() { return 42 - this.hi().length * 4 }
+    route(i) { return [[this.bubbleX() + 2 + i * 4, 29], [47, 29], [97, 29], [103 + i * 4, 28]] }
 
     packet(x, y, t, i) {
       x = Math.round(x)
@@ -1138,7 +1352,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
     }
 
     drawPackets(t) {
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < this.hi().length; i++) {
         const u = t - (5200 + i * 140)
         if (u <= 0 || u >= 1500) continue
         const q = this.along(this.route(i), ease(u / 1500))
@@ -1168,7 +1382,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
       if (open < 0.5) { this.rect(x, y + 2, 9, 1, 8); return }
       this.sprite(['..xxxxx..', '.x.....x.', 'x.......x', '.x.....x.', '..xxxxx..'], x, y, 8)
       let sx = 0, n = 0
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < this.hi().length; i++) {
         const u = t - (5200 + i * 140)
         if (u > 0 && u < 1500) { sx += this.along(this.route(i), ease(u / 1500))[0]; n++ }
       }
@@ -1192,9 +1406,9 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
   // OKpass: the vault is a field of encrypted noise. The same noise turns into the real vault, a decoy
   // or a believable fake depending on the key. Entries come from the app's own lists of fake sites.
   const PASS_LISTS = {
-    real: [['GITHUB.COM', 4, 5], ['SEZNAM.CZ', 3, 4], ['BAKALARI.CZ', 4, 8], [['WIFI DOMA', 'HOME WIFI'], 2, 11]],
-    decoy: [['NETFLIX.COM', 2, 5], ['SPOTIFY.COM', 3, 9], ['ROHLIK.CZ', 2, 13], [['RECEPTY', 'RECIPES'], 0, 8]],
-    fake: [['ALZA.CZ', 3, 4], ['DISCORD.COM', 2, 11], ['VINTED.CZ', 3, 9], ['GMAIL.COM', 4, 5]]
+    real: [['GITHUB.COM', 4, 5], [['SEZNAM.CZ', 'GMAIL.COM'], 3, 4], [['BAKALARI.CZ', 'STEAM'], 4, 8], [['WIFI DOMA', 'HOME WIFI'], 2, 11]],
+    decoy: [['NETFLIX.COM', 2, 5], ['SPOTIFY.COM', 3, 9], [['ROHLIK.CZ', 'AMAZON.COM'], 2, 13], [['RECEPTY', 'RECIPES'], 0, 8]],
+    fake: [[['ALZA.CZ', 'REDDIT.COM'], 3, 4], ['DISCORD.COM', 2, 11], [['VINTED.CZ', 'BOOKING.COM'], 3, 9], [['GMAIL.COM', 'DROPBOX.COM'], 4, 5]]
   }
   class PassScene extends PixelScene {
     constructor(root) {
@@ -1401,10 +1615,81 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
     scene.start()
   }
 
+  // Loading screen: the vault plays by itself in CSS. A click or a key skips it; when it is over it is removed.
+  const vault = document.querySelector('.vault')
+  const introActive = !!vault && !reduceMotion.matches
+  if (vault) {
+    const done = () => vault.remove()
+    const skip = () => {
+      if (!vault.isConnected || vault.classList.contains('skip')) return
+      vault.classList.add('skip')
+      document.documentElement.classList.add('skip-intro')
+      setTimeout(done, 300)
+    }
+    vault.addEventListener('animationend', (e) => { if (e.target === vault) done() })
+    vault.addEventListener('click', skip)
+    addEventListener('keydown', skip, { once: true })
+    // In case animationend never comes (a background tab pauses animations), it goes away anyway.
+    setTimeout(done, introActive ? 2600 : 0)
+  }
+
+  // Sections slide in once, as they scroll into view.
+  const reveal = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue
+      e.target.classList.add('in')
+      reveal.unobserve(e.target)
+    }
+  }, { rootMargin: '0px 0px -10% 0px' })
+  for (const el of document.querySelectorAll('.reveal')) reveal.observe(el)
+
+  // "Jak nainstalovat" stays folded until someone opens it or downloads the app.
+  const setInstall = (box, open) => {
+    box.classList.toggle('open', open)
+    box.querySelector('.install-toggle').setAttribute('aria-expanded', String(open))
+    box.querySelector('.install-body').inert = !open
+  }
+  for (const box of document.querySelectorAll('.install')) {
+    box.querySelector('.install-toggle').addEventListener('click', () => setInstall(box, !box.classList.contains('open')))
+  }
+  for (const link of document.querySelectorAll('.download')) {
+    link.addEventListener('click', () => {
+      const box = link.closest('[data-app]').querySelector('.install')
+      if (box) setInstall(box, true)
+    })
+  }
+
+  // The OK guys look at the mouse.
+  let looking = 0
+  addEventListener('pointermove', (e) => {
+    if (looking) return
+    looking = requestAnimationFrame(() => {
+      looking = 0
+      for (const face of document.querySelectorAll('svg.okguy .okguy-face')) {
+        const box = face.ownerSVGElement.getBoundingClientRect()
+        if (!box.width || box.bottom < 0 || box.top > innerHeight) continue
+        // The head sits at the top middle of the 100 × 120 figure.
+        const dx = e.clientX - (box.left + box.width * 0.5), dy = e.clientY - (box.top + box.height * 0.23)
+        const d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 200) * 3.5
+        face.style.transform = `translate(${((dx / d) * k).toFixed(2)}px, ${((dy / d) * k).toFixed(2)}px)`
+      }
+    })
+  }, { passive: true })
+
+  // Click an OK guy and it does a flip.
+  for (const guy of document.querySelectorAll('.okguy[data-tap]')) {
+    guy.addEventListener('click', () => {
+      guy.classList.remove('flip')
+      void guy.getBoundingClientRect()
+      guy.classList.add('flip')
+    })
+    guy.addEventListener('animationend', (e) => { if (e.animationName === 'flip') guy.classList.remove('flip') })
+  }
+
   // The headline arrives as ciphertext and decrypts itself letter by letter (again after a language switch).
   let decodeTimer = 0
   const decodeTitle = () => {
-    const h1 = document.querySelector('.intro h1'), span = h1 && h1.querySelector('[data-i18n]')
+    const h1 = document.querySelector('.hero h1'), span = h1 && h1.querySelector('[data-i18n]')
     if (!span) return
     clearTimeout(decodeTimer)
     h1.querySelector('.scramble')?.remove()
@@ -1438,7 +1723,8 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
     }
     tick()
   }
-  decodeTitle()
+  // While the vault is open the headline is hidden; it decrypts as the hero rises in.
+  decodeTimer = setTimeout(decodeTitle, introActive ? 1350 : 0)
   langHooks.push(decodeTitle)
 
   // Background: a faint grid of dots. Now and then a bit lights up, a hex digit flickers or a packet runs
