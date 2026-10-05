@@ -62,7 +62,9 @@ export class LocalLibrary implements MediaBackend {
 
   constructor(
     root: string,
-    private readonly hooks: LocalHooks
+    private readonly hooks: LocalHooks,
+    /** Include files in subfolders. */
+    private readonly subfolders = true
   ) {
     this.root = resolve(root)
   }
@@ -118,6 +120,7 @@ export class LocalLibrary implements MediaBackend {
       height: image?.height ?? null,
       duration: null,
       version,
+      source: '',
       shared: false
     }
   }
@@ -135,7 +138,7 @@ export class LocalLibrary implements MediaBackend {
       for (const entry of entries) {
         if (entry.name.startsWith('.') || files.length >= MAX_FILES) continue
         const path = join(folder, entry.name)
-        if (entry.isDirectory() && depth < MAX_DEPTH) await walk(path, depth + 1)
+        if (entry.isDirectory() && this.subfolders && depth < MAX_DEPTH) await walk(path, depth + 1)
         else if (entry.isFile() && kindOf(entry.name) && !(depth === 0 && entry.name === DATA_FILE)) files.push(path)
       }
     }
@@ -249,7 +252,7 @@ export class LocalLibrary implements MediaBackend {
 
   watch(onChange: () => void): () => void {
     try {
-      const watcher = watch(this.root, { recursive: true }, (_event, file) => {
+      const watcher = watch(this.root, { recursive: this.subfolders }, (_event, file) => {
         const name = file ? basename(String(file)) : ''
         if (name === DATA_FILE || name.endsWith('.tmp') || name.startsWith('.')) return
         onChange()

@@ -1,5 +1,5 @@
 // Contract between the main process and the renderer windows.
-import type { DataOp, LibraryData } from './model'
+import type { AlbumIcon, DataOp, FrameColor, LibraryData } from './model'
 
 export type StorageMode = 'drive' | 'local'
 export type MediaKind = 'image' | 'video'
@@ -9,8 +9,13 @@ export type PlatformName = 'windows' | 'linux' | 'macos'
 
 /** One photo or video in the library. Times are milliseconds since the epoch. */
 export interface MediaItem {
-  /** Drive file id, or the path relative to the library folder (with "/"). */
+  /**
+   * "<source id>:<id in the source>". The id in the source is the Drive file id, or the path
+   * relative to the local folder (with "/").
+   */
   id: string
+  /** Id of the source (Google Drive account or local folder) the file lives in. */
+  source: string
   name: string
   /** Lower-case extension without the dot. */
   ext: string
@@ -38,30 +43,44 @@ export interface Message {
   error?: boolean
 }
 
-export interface AccountInfo {
-  /** Google e-mail (Drive) or the folder path (local). */
-  email: string
+export type Screen = { name: 'loading' } | { name: 'library'; session: number }
+
+/** A place photos come from: a folder on this computer or a Google Drive account (settings.json). */
+export interface SourceConfig {
+  id: string
+  kind: StorageMode
   name: string
+  icon: AlbumIcon
+  color: FrameColor | null
+  /** Ticked in the sources panel: its files are shown. */
+  enabled: boolean
+  /** Local: the folder. */
+  path: string | null
+  /** Local: include files in subfolders. */
+  subfolders: boolean
+  /** Drive: the signed-in account. */
+  account: { id: string; email: string; name: string } | null
 }
 
-export type Screen =
-  | { name: 'loading' }
-  | {
-      name: 'welcome'
-      /** Chosen storage, null until the user picks one. */
-      mode: StorageMode | null
-      needSecret: boolean
-      busy: boolean
-      connectError: boolean
-      message: Message | null
-      defaultFolder: string
-    }
-  | { name: 'library'; mode: StorageMode; account: AccountInfo; session: number }
+/** What the user fills in when adding or editing a source. */
+export type SourceDraft = Pick<SourceConfig, 'name' | 'icon' | 'color'> & Partial<Pick<SourceConfig, 'path' | 'subfolders'>>
+
+export type SourceStatus = 'connecting' | 'ready' | 'offline' | 'login' | 'error'
+
+export interface SourceState extends SourceConfig {
+  status: SourceStatus
+  sync: SyncState
+  loading: boolean
+  count: number
+  /** Why the source is not ready (translated in the window). */
+  message: Message | null
+}
+
+export type AddSourceResult = { ok: true; id: string } | { ok: false; error: Message | null }
 
 export interface LibraryState {
   media: MediaItem[]
-  online: boolean
-  /** The media list is being loaded from storage. */
+  /** Some source is loading its list. */
   loading: boolean
 }
 
@@ -76,10 +95,11 @@ export interface Transfer {
 }
 
 export interface Quota {
+  source: string
   used: number
   /** null = unlimited */
   limit: number | null
-  /** Bytes taken by the media of this library. */
+  /** Bytes taken by the media of this source. */
   library: number
 }
 
@@ -91,7 +111,7 @@ export interface Bounds {
   maximized: boolean
 }
 
-/** Preferences stored with the library (Google Drive or the local folder), so every computer shares them. */
+/** Preferences stored with the library (in every source), so every computer shares them. */
 export interface Prefs {
   theme: 'light' | 'dark' | 'opikula' | 'custom'
   custom_colors: Record<string, string>
@@ -111,14 +131,14 @@ export interface Prefs {
 
 /** Settings of this computer only (settings.json). */
 export interface DeviceSettings {
-  storage: StorageMode | null
-  local_folder: string | null
+  sources: SourceConfig[]
   /** null = ask where to save every time. */
   download_folder: string | null
   /** Background refresh interval; 0 = off. */
   sync_minutes: number
   volume: number
-  last_account: { id?: string; email?: string; name?: string }
+  /** The sources panel is open. */
+  sources_panel: boolean
   window_bounds: Bounds | null
   viewer_bounds: Bounds | null
 }
@@ -141,6 +161,7 @@ export interface ViewerContext {
 
 export type RenameResult = 'ok' | 'invalid' | 'exists' | 'failed'
 export type ImportResult = 'ok' | 'cancel' | 'invalid'
+export type ClientSecretResult = 'ok' | 'cancel' | 'invalid' | 'wrong_type'
 
 export interface OkgramApi {
   platform: PlatformName
@@ -162,21 +183,29 @@ export interface OkgramApi {
   onSettings(listener: (settings: Settings) => void): () => void
   updateSettings(patch: Partial<Settings>): Promise<Settings>
 
-  // welcome
-  chooseMode(mode: StorageMode | null): Promise<void>
-  chooseClientSecret(): Promise<void>
-  login(successText: string): Promise<void>
-  retry(): Promise<void>
-  /** Local library: null = the default folder, true = pick one in a dialog. */
-  openLocal(folder: string | null | true): Promise<void>
-  /** Drive: sign out; local: close the library. 'pending' = unsaved changes, call again with force. */
-  leave(force?: boolean): Promise<'done' | 'pending'>
+  // sources
+  getSources(): Promise<SourceState[]>
+  onSources(listener: (sources: SourceState[]) => void): () => void
+  /** A suggested folder for a new local source (Pictures/OKgram). */
+  defaultFolder(): Promise<string>
+  pickFolder(defaultPath?: string | null): Promise<string | null>
+  addLocalSource(draft: SourceDraft): Promise<AddSourceResult>
+  /** Opens the browser for Google sign-in; another account can be connected each time. */
+  addDriveSource(draft: SourceDraft, successText: string): Promise<AddSourceResult>
+  updateSource(id: string, patch: Partial<SourceDraft & { enabled: boolean }>): Promise<AddSourceResult>
+  /** Sign in again (expired Google sign-in). */
+  reconnectSource(id: string, successText: string): Promise<AddSourceResult>
+  /** Drive: sign out of that account; local: forget the folder (files stay). 'pending' = unsaved changes, call again with force. */
+  removeSource(id: string, force?: boolean): Promise<'done' | 'pending'>
+  /** The bundled or chosen OAuth client exists. */
+  hasClientSecret(): Promise<boolean>
+  chooseClientSecret(): Promise<ClientSecretResult>
 
   // library
   refresh(): Promise<void>
   mutate(op: DataOp): Promise<void>
   /** No paths: pick files in a dialog. albumId: also add the new files to that album. */
-  upload(paths?: string[], albumId?: string | null): Promise<void>
+  upload(source: string, paths?: string[], albumId?: string | null): Promise<void>
   pathForFile(file: File): string
   download(ids: string[]): Promise<void>
   downloadZip(ids: string[], name: string): Promise<void>
@@ -184,7 +213,7 @@ export interface OkgramApi {
   clearTransfers(): Promise<void>
   rename(id: string, name: string): Promise<RenameResult>
   trash(ids: string[]): Promise<number>
-  /** Drive: make the file readable by anyone with the link; returns the link (copied to the clipboard). */
+  /** Drive: make the file readable by anyone with the link; returns the link (copied to the clipboard). Local: the path. */
   share(id: string): Promise<string | null>
   unshare(id: string): Promise<boolean>
   copyText(text: string): Promise<void>
@@ -192,7 +221,7 @@ export interface OkgramApi {
   openInSystem(id: string): Promise<boolean>
   /** A thumbnail the window made itself (video frame, rotated JPEG) and, for videos, the size and length. */
   storeThumbnail(id: string, version: string, thumbnail: Uint8Array | null, info: VideoInfo | null): Promise<void>
-  quota(): Promise<Quota | null>
+  quota(): Promise<Quota[]>
   cacheSize(): Promise<number>
   clearCache(): Promise<void>
   exportSettings(): Promise<boolean>

@@ -30,7 +30,8 @@ export function albumOutline(albums: Album[], mode: 'manual' | 'name' | 'date'):
 export function useMediaActions() {
   const { t, settings, confirm, prompt, notify } = useApp()
   const library = useLibrary()
-  const { data, mode } = library
+  const { data } = library
+  const kindOf = (item: MediaItem): 'drive' | 'local' => library.sourceOf(item)?.kind ?? 'local'
 
   const open = (list: MediaItem[], index: number, slideshow = false): void => {
     void api.openViewer(
@@ -46,10 +47,9 @@ export function useMediaActions() {
 
   const trash = async (items: MediaItem[]): Promise<boolean> => {
     if (!items.length) return false
-    const text =
-      items.length === 1
-        ? t(mode === 'drive' ? 'trash.confirm_one_drive' : 'trash.confirm_one_local', { name: items[0].name })
-        : t(mode === 'drive' ? 'trash.confirm_many_drive' : 'trash.confirm_many_local', { count: items.length })
+    const kinds = new Set(items.map(kindOf))
+    const where = kinds.size > 1 ? 'mixed' : [...kinds][0]
+    const text = items.length === 1 ? t(`trash.confirm_one_${where}`, { name: items[0].name }) : t(`trash.confirm_many_${where}`, { count: items.length })
     const ok = await confirm({ title: t('trash.title'), text, confirmText: t('trash.button'), danger: true })
     if (!ok) return false
     const count = await api.trash(items.map((m) => m.id))
@@ -73,7 +73,7 @@ export function useMediaActions() {
   }
 
   const share = async (item: MediaItem): Promise<void> => {
-    if (mode === 'local') {
+    if (kindOf(item) === 'local') {
       if (await api.share(item.id)) notify(t('share.path_copied'))
       return
     }
@@ -156,8 +156,8 @@ export function useMediaActions() {
     if (single) {
       result.push({ label: t('menu.rename'), icon: 'edit', separatorBefore: !items.some((m) => m.kind === 'image'), onSelect: () => void rename(single) })
       result.push({ label: t('menu.details'), icon: 'info', onSelect: () => library.showDetails(single) })
-      result.push({ label: t(mode === 'drive' ? 'menu.share' : 'menu.copy_path'), icon: 'link', onSelect: () => void share(single) })
-      if (mode === 'drive' && single.shared) result.push({ label: t('menu.unshare'), onSelect: () => void api.unshare(single.id).then((ok) => ok && notify(t('share.removed'))) })
+      result.push({ label: t(kindOf(single) === 'drive' ? 'menu.share' : 'menu.copy_path'), icon: 'link', onSelect: () => void share(single) })
+      if (kindOf(single) === 'drive' && single.shared) result.push({ label: t('menu.unshare'), onSelect: () => void api.unshare(single.id).then((ok) => ok && notify(t('share.removed'))) })
       result.push({ label: t('menu.system'), icon: 'external', onSelect: () => void api.openInSystem(single.id) })
     }
     result.push({ label: t('menu.trash'), icon: 'trash', danger: true, separatorBefore: true, onSelect: () => void trash(items) })

@@ -1,15 +1,16 @@
 // Preview replacement of src/renderer/src/api.ts: the real UI with an in-memory library,
 // so the windows can be looked at in a plain browser (no Electron, no Google account).
 // The data changes go through the real applyOp(), like in the main process.
+// ?empty starts without sources.
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react'
-import { defaultSettings, sanitizeSettings } from '../../src/core/settings'
-import type { LibraryState, MediaItem, Message, OkgramApi, Screen, Settings, SyncState, Transfer, ViewerContext } from '../../src/shared/ipc'
+import { defaultSettings, sanitizeSettings, sanitizeSource } from '../../src/core/settings'
+import type { LibraryState, MediaItem, Message, OkgramApi, Screen, Settings, SourceConfig, SourceState, SyncState, Transfer, ViewerContext } from '../../src/shared/ipc'
 import { applyOp, emptyData, type DataOp, type LibraryData } from '../../src/shared/model'
 import { pickPrefs, sanitizePrefs } from '../../src/shared/prefs'
 import { makeSamples } from './media'
 import { blobs } from './urls'
 
-type Channel = 'screen' | 'message' | 'library' | 'data' | 'status' | 'transfers' | 'settings' | 'viewer'
+type Channel = 'screen' | 'message' | 'library' | 'data' | 'status' | 'transfers' | 'settings' | 'viewer' | 'sources'
 const listeners = new Map<Channel, Set<(payload: never) => void>>()
 const emit = (channel: Channel, payload: unknown): void => listeners.get(channel)?.forEach((fn) => (fn as (p: unknown) => void)(payload))
 const listen =
@@ -25,30 +26,37 @@ const isViewer = params.has('viewer')
 const samples = await makeSamples()
 for (const s of samples) blobs.set(s.item.id, { url: s.url, thumb: s.thumb })
 
-let settings: Settings = { ...defaultSettings(), storage: 'local', local_folder: 'C:\\Users\\Opi\\Pictures\\OKgram', sync_minutes: 5 }
+const SAMPLE_SOURCES: SourceConfig[] = [
+  sanitizeSource({ id: 'pc', kind: 'local', name: 'Fotky v PC', path: 'C:\\Users\\Opi\\Pictures\\OKgram', icon: 'image', color: 'green' })!,
+  sanitizeSource({ id: 'drive1', kind: 'drive', name: 'Disk – osobní', icon: 'globe', color: 'blue', account: { id: 'p1', email: 'samuelpelc464@gmail.com', name: 'Samuel' } })!,
+  sanitizeSource({ id: 'drive2', kind: 'drive', name: 'Disk – rodina', icon: 'users', color: 'purple', account: { id: 'p2', email: 'pelcsamuel464@gmail.com', name: 'Samuel' } })!
+]
+
+let settings: Settings = { ...defaultSettings(), sources: params.has('empty') ? [] : SAMPLE_SOURCES, sync_minutes: 5 }
 let media: MediaItem[] = samples.map((s) => s.item)
 let data: LibraryData = emptyData(sanitizePrefs(settings))
-data = applyOp(data, { type: 'meta', ids: ['Sněžka.jpg', 'Jezero.jpg'], patch: { star: true } })
-data = applyOp(data, { type: 'meta', ids: ['Chata večer.jpg'], patch: { color: 'orange' } })
-data = applyOp(data, { type: 'meta', ids: ['Les u potoka.jpg'], patch: { color: 'green' } })
-data = applyOp(data, { type: 'album.create', id: 'hory', name: 'Hory', parent: null, icon: 'mountain', color: 'blue', items: ['Krkonoše východ.jpg', 'Sněžka.jpg', 'Kopce.png', 'Údolí.jpg'] })
-data = applyOp(data, { type: 'album.create', id: 'krk', name: 'Krkonoše 2026', parent: 'hory', icon: 'flag', items: ['Krkonoše východ.jpg', 'Sněžka.jpg'] })
-data = applyOp(data, { type: 'album.create', id: 'rod', name: 'Rodina', parent: null, icon: 'heart', color: 'red', items: ['Babička 80.jpg', 'Chata večer.jpg'] })
-data = applyOp(data, { type: 'album.create', id: 'more', name: 'Léto u moře', parent: null, icon: 'sun', color: 'yellow', items: ['Léto 2026/Moře 1.jpg', 'Léto 2026/Moře 2.jpg', 'Léto 2026/Pláž.jpg', 'Výlet na kole.webm'] })
+data = applyOp(data, { type: 'meta', ids: ['pc:Sněžka.jpg', 'pc:Jezero.jpg'], patch: { star: true } })
+data = applyOp(data, { type: 'meta', ids: ['pc:Chata večer.jpg'], patch: { color: 'orange' } })
+data = applyOp(data, { type: 'album.create', id: 'hory', name: 'Hory', parent: null, icon: 'mountain', color: 'blue', items: ['pc:Krkonoše východ.jpg', 'pc:Sněžka.jpg', 'drive2:Výlet 2025/Skály.jpg'] })
+data = applyOp(data, { type: 'album.create', id: 'more', name: 'Léto u moře', parent: null, icon: 'sun', color: 'yellow', items: ['drive1:Léto 2026/Moře 1.jpg', 'drive1:Léto 2026/Pláž.jpg', 'drive1:Výlet na kole.webm'] })
 data = applyOp(data, { type: 'profile', username: 'OpiKula' })
 
-let screen: Screen = params.has('welcome')
-  ? { name: 'welcome', mode: null, needSecret: true, busy: false, connectError: false, message: null, defaultFolder: 'C:\\Users\\Opi\\Pictures\\OKgram' }
-  : { name: 'library', mode: params.has('drive') ? 'drive' : 'local', account: params.has('drive') ? { email: 'opikula@gmail.com', name: 'Opi Kula' } : { email: settings.local_folder!, name: 'OKgram' }, session: 1 }
+const screen: Screen = { name: 'library', session: 1 }
 let status: SyncState = 'saved'
 let transfers: Transfer[] = []
 let counter = 0
 
-const library = (): LibraryState => ({ media, online: true, loading: false })
-const setScreen = (next: Screen): void => {
-  screen = next
-  emit('screen', screen)
-}
+const sources = (): SourceState[] =>
+  settings.sources.map((s) => ({
+    ...s,
+    status: s.id === 'drive2' && params.has('login') ? 'login' : 'ready',
+    sync: 'saved',
+    loading: false,
+    count: media.filter((m) => m.source === s.id).length,
+    message: s.id === 'drive2' && params.has('login') ? { key: 'source.login_expired', error: true } : null
+  }))
+const visible = (): MediaItem[] => media.filter((m) => settings.sources.some((s) => s.id === m.source))
+const library = (): LibraryState => ({ media: visible(), loading: false })
 const message = (m: Message): void => emit('message', m)
 const save = (): void => {
   status = 'saving'
@@ -60,6 +68,11 @@ const mutate = (op: DataOp): void => {
   if (op.type === 'prefs') emit('settings', (settings = { ...settings, ...data.prefs }))
   emit('data', data)
   save()
+}
+const sourcesChanged = (): void => {
+  emit('settings', settings)
+  emit('sources', sources())
+  emit('library', library())
 }
 
 function fakeTransfer(kind: Transfer['kind'], name: string, total: number, then?: () => void): void {
@@ -103,34 +116,47 @@ export const api: OkgramApi = {
   getSettings: async () => settings,
   onSettings: listen('settings'),
   async updateSettings(patch) {
-    settings = sanitizeSettings({ ...settings, ...patch })
+    settings = sanitizeSettings({ ...settings, ...patch, sources: settings.sources })
     const prefs = pickPrefs(patch)
-    if (Object.keys(prefs).length) {
-      data = applyOp(data, { type: 'prefs', patch: prefs })
-      emit('data', data)
-      save()
-    }
+    if (Object.keys(prefs).length) mutate({ type: 'prefs', patch: prefs })
     emit('settings', settings)
     return settings
   },
 
-  async chooseMode(mode) {
-    setScreen({ name: 'welcome', mode, needSecret: mode === 'drive', busy: false, connectError: false, message: null, defaultFolder: 'C:\\Users\\Opi\\Pictures\\OKgram' })
+  getSources: async () => sources(),
+  onSources: listen('sources'),
+  defaultFolder: async () => 'C:\\Users\\Opi\\Pictures\\OKgram',
+  pickFolder: async () => 'C:\\Users\\Opi\\Pictures\\Dovolená',
+  async addLocalSource(draft) {
+    const config = sanitizeSource({ ...draft, id: `local${++counter}`, kind: 'local' })
+    if (!config) return { ok: false, error: { key: 'source.no_folder', error: true } }
+    settings = { ...settings, sources: [...settings.sources, config] }
+    sourcesChanged()
+    return { ok: true, id: config.id }
   },
-  async chooseClientSecret() {
-    if (screen.name === 'welcome') setScreen({ ...screen, needSecret: false, message: { key: 'login.secret_ok' } })
+  async addDriveSource(draft) {
+    await new Promise((r) => setTimeout(r, 900))
+    const id = `drive${++counter}`
+    const config = sanitizeSource({ ...draft, id, kind: 'drive', name: draft.name || 'novy@gmail.com', account: { id, email: 'novy@gmail.com', name: 'Nový' } })!
+    settings = { ...settings, sources: [...settings.sources, config] }
+    sourcesChanged()
+    return { ok: true, id }
   },
-  async login() {
-    setScreen({ name: 'library', mode: 'drive', account: { email: 'opikula@gmail.com', name: 'Opi Kula' }, session: 2 })
+  async updateSource(id, patch) {
+    settings = { ...settings, sources: settings.sources.map((s) => (s.id === id ? (sanitizeSource({ ...s, ...patch }) ?? s) : s)) }
+    sourcesChanged()
+    return { ok: true, id }
   },
-  async retry() {},
-  async openLocal() {
-    setScreen({ name: 'library', mode: 'local', account: { email: settings.local_folder!, name: 'OKgram' }, session: 3 })
+  async reconnectSource(id) {
+    return { ok: true, id }
   },
-  async leave() {
-    setScreen({ name: 'welcome', mode: null, needSecret: true, busy: false, connectError: false, message: { key: 'login.closed' }, defaultFolder: 'C:\\Users\\Opi\\Pictures\\OKgram' })
+  async removeSource(id) {
+    settings = { ...settings, sources: settings.sources.filter((s) => s.id !== id) }
+    sourcesChanged()
     return 'done'
   },
+  hasClientSecret: async () => true,
+  chooseClientSecret: async () => 'ok',
 
   async refresh() {
     emit('library', { ...library(), loading: true })
@@ -139,15 +165,17 @@ export const api: OkgramApi = {
   async mutate(op) {
     mutate(op)
   },
-  async upload(_paths, albumId) {
+  async upload(source, _paths, albumId) {
     const copy = samples[counter % (samples.length - 1)]
-    const id = `Nahráno ${++counter}.jpg`
+    const name = `Nahráno ${++counter}.jpg`
+    const id = `${source}:${name}`
     blobs.set(id, { url: copy.url, thumb: copy.thumb })
-    fakeTransfer('upload', id, copy.item.size || 500_000, () => {
-      media = [...media, { ...copy.item, id, name: id, created: Date.now() }]
+    fakeTransfer('upload', name, copy.item.size || 500_000, () => {
+      media = [...media, { ...copy.item, id, source, name, created: Date.now() }]
       emit('library', library())
+      emit('sources', sources())
       if (albumId) mutate({ type: 'album.add', id: albumId, items: [id] })
-      message({ key: 'upload.done', params: { count: 1 } })
+      message({ key: 'upload.done', params: { count: 1, name: settings.sources.find((s) => s.id === source)?.name ?? '' } })
     })
   },
   pathForFile: (file) => file.name,
@@ -169,7 +197,7 @@ export const api: OkgramApi = {
     const item = media.find((m) => m.id === id)
     if (!item) return 'failed'
     const name = `${stem}.${item.ext}`
-    const nextId = id.includes('/') ? `${id.slice(0, id.lastIndexOf('/') + 1)}${name}` : name
+    const nextId = id.includes('/') ? `${id.slice(0, id.lastIndexOf('/') + 1)}${name}` : `${item.source}:${name}`
     if (media.some((m) => m.id === nextId && m.id !== id)) return 'exists'
     blobs.set(nextId, blobs.get(id)!)
     media = media.map((m) => (m.id === id ? { ...m, id: nextId, name } : m))
@@ -186,7 +214,7 @@ export const api: OkgramApi = {
   async share(id) {
     media = media.map((m) => (m.id === id ? { ...m, shared: true } : m))
     emit('library', library())
-    return screen.name === 'library' && screen.mode === 'drive' ? 'https://drive.google.com/file/d/xyz/view' : `C:\\Users\\Opi\\Pictures\\OKgram\\${id}`
+    return 'https://drive.google.com/file/d/xyz/view'
   },
   async unshare(id) {
     media = media.map((m) => (m.id === id ? { ...m, shared: false } : m))
@@ -199,7 +227,12 @@ export const api: OkgramApi = {
   },
   async storeThumbnail() {},
   async quota() {
-    return { used: 6_200_000_000, limit: 15_000_000_000, library: media.reduce((sum, m) => sum + m.size, 0) }
+    return settings.sources.map((s, i) => ({
+      source: s.id,
+      used: [312_000_000_000, 6_200_000_000, 11_900_000_000][i % 3],
+      limit: [512_000_000_000, 15_000_000_000, 15_000_000_000][i % 3],
+      library: media.filter((m) => m.source === s.id).reduce((sum, m) => sum + m.size, 0)
+    }))
   },
   cacheSize: async () => 12_400_000,
   async clearCache() {

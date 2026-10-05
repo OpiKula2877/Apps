@@ -1,2 +1,8 @@
 # Built installers (build-setup.bat)
 /Setup/
+
+# Local build helpers (not for users)
+build-setup.bat
+
+# Google OAuth client of OKgram (bundled into the installer, kept out of the public repo)
+OKgram/OKgram - WinLinMac/resources/client_secret.json

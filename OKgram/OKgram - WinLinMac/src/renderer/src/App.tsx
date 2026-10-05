@@ -8,7 +8,6 @@ import { AppContext, type AppServices, type ConfirmOptions, type PromptOptions }
 import { HelpDialog } from './dialogs/HelpDialog'
 import { translator } from './i18n'
 import { LibraryPage } from './pages/LibraryPage'
-import { WelcomePage } from './pages/WelcomePage'
 import { applyTheme } from './theme'
 import { ViewerApp } from './viewer/ViewerApp'
 
@@ -79,8 +78,7 @@ export function App() {
           <>
             {!native && <TitleBar />}
             <main className="pages">
-              {screen.name === 'welcome' && <WelcomePage screen={screen} />}
-              {screen.name === 'library' && <LibraryPage key={screen.session} screen={screen} />}
+              {screen.name === 'library' && <LibraryPage key={screen.session} />}
             </main>
           </>
         )}

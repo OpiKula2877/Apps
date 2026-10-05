@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { ALBUM_ICONS, FRAME_COLORS, FRAME_HEX, type Album, type AlbumIcon, type FrameColor } from '../../../shared/model'
-import { Icon } from '../components/Icon'
+import type { Album, AlbumIcon, FrameColor } from '../../../shared/model'
+import { ColorPicker, IconPicker } from '../components/IconColorPicker'
 import { Modal } from '../components/Modal'
 import { useApp } from '../context'
 
@@ -38,36 +38,9 @@ export function AlbumDialog({ album, onDone }: { album: Album | null; onDone: (d
       <label className="field-label">{t('album.name')}</label>
       <input value={name} maxLength={100} data-autofocus placeholder={t('album.name_placeholder')} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} />
       <label className="field-label">{t('album.icon')}</label>
-      <div className="icon-picker" role="radiogroup" aria-label={t('album.icon')}>
-        {ALBUM_ICONS.map((name) => (
-          <button
-            key={name}
-            type="button"
-            role="radio"
-            aria-checked={icon === name}
-            className={`icon-choice ${icon === name ? 'checked' : ''}`}
-            title={t(`icon.${name}`)}
-            aria-label={t(`icon.${name}`)}
-            style={color ? { color: FRAME_HEX[color] } : undefined}
-            onClick={() => setIcon(name)}
-          >
-            <Icon name={name} size={20} />
-          </button>
-        ))}
-      </div>
+      <IconPicker value={icon} color={color} onChange={setIcon} />
       <label className="field-label">{t('album.color')}</label>
-      <div className="color-picker" role="radiogroup" aria-label={t('album.color')}>
-        <button type="button" role="radio" aria-checked={color === null} className={`color-choice ${color === null ? 'checked' : ''}`} onClick={() => setColor(null)}>
-          <span className="swatch-dot" />
-          {t('color.none')}
-        </button>
-        {FRAME_COLORS.map((c) => (
-          <button key={c} type="button" role="radio" aria-checked={color === c} className={`color-choice ${color === c ? 'checked' : ''}`} onClick={() => setColor(c)}>
-            <span className="swatch-dot" style={{ background: FRAME_HEX[c] }} />
-            {t(`color.${c}`)}
-          </button>
-        ))}
-      </div>
+      <ColorPicker value={color} onChange={setColor} />
     </Modal>
   )
 }

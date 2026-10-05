@@ -80,7 +80,7 @@ const BODY: Record<Lang, string> = {
 
 <h2>Co je kde</h2>
 <ul>
-<li><b>Úvodní obrazovka</b> – vyberete, kde budou fotky a videa: <i>Google Disk</i> nebo <i>Tento počítač</i>.</li>
+<li><b>Panel Zdroje</b> vpravo – složky v počítači a Google účty, ze kterých se fotky berou, a jejich zaškrtávání.</li>
 <li><b>Záložka Média</b> – všechny fotky a videa. Nahoře hledání, filtry, řazení a přepínač mřížka / seznam.</li>
 <li><b>Záložka Alba</b> – vlevo chytrá alba a vaše alba, vpravo obsah vybraného alba.</li>
 <li><b>Lišta vpravo nahoře</b> – uživatelské jméno, stav ukládání, <i>Nahrát</i>, <i>Obnovit</i> a <i>Nastavení</i>.</li>
@@ -91,14 +91,20 @@ const BODY: Record<Lang, string> = {
 <h2>Instalace a spuštění</h2>
 {install}
 
-<h2>Google Disk, nebo tento počítač</h2>
+<h2>Zdroje</h2>
+<p>Zdroj je místo, odkud OKgram bere fotky a videa. Zdroje jsou v panelu <b>Zdroje</b> vpravo (zobrazíte ho ikonou složky nahoře). Můžete jich mít kolik chcete a kombinovat je.</p>
 <ul>
-<li><b>Google Disk</b>: fotky a videa jsou ve složce <b>OKgram</b> na vašem Disku. Na každém počítači, kde se přihlásíte, vidíte totéž. Alba, hvězdičky, rámečky, uživatelské jméno a nastavení vzhledu jsou v souboru <code>okgram.json</code> ve stejné složce.</li>
-<li><b>Tento počítač</b>: fotky a videa jsou ve složce na disku, výchozí je <code>{folder}</code>. Můžete vybrat i jinou složku. OKgram ukáže i soubory v podsložkách. Soubory, které do složky zkopírujete jinak (např. v průzkumníku), se objeví samy. <code>okgram.json</code> je přímo ve složce.</li>
-<li>Úložiště změníte v <i>Nastavení → Účet → Změnit úložiště</i>. Fotky se při tom nepřesouvají.</li>
+<li><b>Přidat zdroj</b> → <i>Složka v počítači</i>: vyberete složku (výchozí <code>{folder}</code>), název, ikonu, barvu a jestli brát i podsložky. Soubory, které do složky zkopírujete jinak (např. v průzkumníku), se objeví samy.</li>
+<li><b>Přidat zdroj</b> → <i>Google Disk</i>: otevře se prohlížeč a vyberete Google účet. Fotky jsou ve složce <b>OKgram</b> na jeho Disku. Takhle připojíte i víc účtů najednou, každý je samostatný zdroj.</li>
+<li><b>Zaškrtnutí</b> u zdroje určuje, jestli se jeho soubory zobrazují v Médiích i Albech. Pravé tlačítko → <i>Zobrazit jen tento zdroj</i>.</li>
+<li><b>Nahrávání</b>: když je zaškrtnutý jeden zdroj, soubory jdou do něj. Když jich je víc, OKgram se zeptá, kam je uložit.</li>
+<li>Každý zdroj má vlastní <code>okgram.json</code> s hvězdičkami a rámečky svých souborů a se seznamem alb. Album proto může obsahovat fotky z více zdrojů.</li>
+<li><b>Odebrat zdroj</b> (pravé tlačítko nebo …): u složky se soubory nemažou, u Google účtu se jen odhlásíte.</li>
+<li>Když přihlášení ke Google vyprší, u zdroje se objeví <i>Přihlásit znovu</i>.</li>
 </ul>
 
 <h2>První přihlášení přes Google</h2>
+<p>OKgram má přístup ke Google Disku vestavěný: stačí v panelu Zdroje kliknout na <i>Přidat zdroj → Google Disk</i>. Postup níže je jen pro případ, že chcete použít vlastní Google Cloud projekt (<i>Změnit client_secret.json</i>).</p>
 <p>OKgram se k Disku připojuje přes vlastní přístup, který si jednou vytvoříte v Google Cloud. Můžete použít i projekt, který už máte pro OKpass.</p>
 <ol>
 <li>Otevřete <b>console.cloud.google.com</b> a vytvořte projekt (např. <i>OKgram</i>), nebo vyberte existující.</li>
@@ -106,7 +112,7 @@ const BODY: Record<Lang, string> = {
 <li><i>Google Auth Platform → Branding</i>: vyplňte název aplikace a e-maily. <i>Audience</i>: typ <b>External</b>.</li>
 <li><i>Data Access → Add or remove scopes</i>: přidejte <code>.../auth/drive.file</code>.</li>
 <li><i>Clients → Create client</i>, typ aplikace <b>Desktop app</b>. Po vytvoření klikněte na <i>Download JSON</i>.</li>
-<li>V OKgram vyberte <i>Google Disk</i>, klikněte na <i>Vybrat client_secret.json…</i> a vyberte stažený soubor.</li>
+<li>V OKgram klikněte na <i>Přidat zdroj → Google Disk → Vybrat client_secret.json…</i> a vyberte stažený soubor.</li>
 <li>Klikněte na <i>Přihlásit se přes Google</i>. Otevře se prohlížeč, vyberte účet a povolte přístup. Pokud Google ukáže „Google hasn't verified this app“, klikněte na <i>Continue</i> (je to vaše vlastní aplikace).</li>
 <li>Po přihlášení OKgram vytvoří na Disku složku <b>OKgram</b>.</li>
 </ol>
@@ -163,7 +169,7 @@ const BODY: Record<Lang, string> = {
 
 <h2>Nastavení</h2>
 <ul>
-<li><b>Účet</b> – Google účet a odhlášení, nebo složka v počítači, uživatelské jméno a změna úložiště.</li>
+<li><b>Účet</b> – uživatelské jméno a přehled zdrojů.</li>
 <li><b>Vzhled</b> – jazyk, velikost písma, velikost miniatur, výchozí zobrazení a téma: Světlý, Tmavý, OpiKula style nebo Vlastní (vlastní barvy a prvky okna).</li>
 <li><b>Prohlížení</b> – výchozí řazení médií a alb, délka snímku v prezentaci, automatické přehrávání a opakování videí.</li>
 <li><b>Úložiště</b> – využití místa, výchozí složka pro stahování, interval synchronizace a vymazání miniatur.</li>
@@ -194,7 +200,7 @@ const BODY: Record<Lang, string> = {
 
 <h2>What is where</h2>
 <ul>
-<li><b>Start screen</b> – choose where photos and videos live: <i>Google Drive</i> or <i>This computer</i>.</li>
+<li><b>Sources panel</b> on the right – folders on this computer and Google accounts the photos come from, with ticks to show or hide them.</li>
 <li><b>Media tab</b> – all photos and videos. At the top: search, filters, sorting and the grid / list switch.</li>
 <li><b>Albums tab</b> – smart albums and your albums on the left, the chosen album on the right.</li>
 <li><b>Top right</b> – user name, save status, <i>Upload</i>, <i>Refresh</i> and <i>Settings</i>.</li>
@@ -205,14 +211,20 @@ const BODY: Record<Lang, string> = {
 <h2>Install and run</h2>
 {install}
 
-<h2>Google Drive or this computer</h2>
+<h2>Sources</h2>
+<p>A source is a place OKgram takes photos and videos from. Sources are in the <b>Sources</b> panel on the right (show it with the folder icon at the top). You can have as many as you like and combine them.</p>
 <ul>
-<li><b>Google Drive</b>: photos and videos are in the <b>OKgram</b> folder on your Drive. Every computer you sign in on shows the same. Albums, stars, frames, the user name and the appearance settings are in <code>okgram.json</code> in the same folder.</li>
-<li><b>This computer</b>: photos and videos are in a folder on the disk, by default <code>{folder}</code>. You can choose another folder. OKgram also shows files in subfolders. Files you copy into the folder in other ways (e.g. in the file manager) appear by themselves. <code>okgram.json</code> sits in the folder itself.</li>
-<li>Change the storage in <i>Settings → Account → Change storage</i>. No files are moved.</li>
+<li><b>Add source</b> → <i>Folder on this computer</i>: pick the folder (by default <code>{folder}</code>), a name, icon, colour and whether to include subfolders. Files you copy into the folder in other ways (e.g. in the file manager) appear by themselves.</li>
+<li><b>Add source</b> → <i>Google Drive</i>: a browser opens and you choose a Google account. The photos are in the <b>OKgram</b> folder on its Drive. Connect several accounts this way; each is its own source.</li>
+<li>The <b>tick</b> next to a source decides whether its files show in Media and Albums. Right click → <i>Show only this source</i>.</li>
+<li><b>Uploading</b>: with one ticked source the files go there. With several, OKgram asks where to save them.</li>
+<li>Every source has its own <code>okgram.json</code> with the stars and frames of its files and the list of albums, so an album can hold photos from several sources.</li>
+<li><b>Remove source</b> (right click or …): a folder keeps its files; a Google account is only signed out.</li>
+<li>When a Google sign-in expires, the source shows <i>Sign in again</i>.</li>
 </ul>
 
 <h2>First sign-in with Google</h2>
+<p>OKgram comes with its own access to Google Drive: click <i>Add source → Google Drive</i> in the Sources panel. The steps below are only for using your own Google Cloud project (<i>Change client_secret.json</i>).</p>
 <p>OKgram connects to Drive through your own access, created once in Google Cloud. You can use the project you already have for OKpass.</p>
 <ol>
 <li>Open <b>console.cloud.google.com</b> and create a project (e.g. <i>OKgram</i>), or pick an existing one.</li>
@@ -220,7 +232,7 @@ const BODY: Record<Lang, string> = {
 <li><i>Google Auth Platform → Branding</i>: fill in the app name and e-mails. <i>Audience</i>: type <b>External</b>.</li>
 <li><i>Data Access → Add or remove scopes</i>: add <code>.../auth/drive.file</code>.</li>
 <li><i>Clients → Create client</i>, application type <b>Desktop app</b>. Then click <i>Download JSON</i>.</li>
-<li>In OKgram choose <i>Google Drive</i>, click <i>Choose client_secret.json…</i> and select the downloaded file.</li>
+<li>In OKgram click <i>Add source → Google Drive → Choose client_secret.json…</i> and select the downloaded file.</li>
 <li>Click <i>Sign in with Google</i>. A browser opens; pick your account and allow access. If Google shows “Google hasn't verified this app”, click <i>Continue</i> (it is your own app).</li>
 <li>After signing in, OKgram creates the folder <b>OKgram</b> on your Drive.</li>
 </ol>
@@ -277,7 +289,7 @@ const BODY: Record<Lang, string> = {
 
 <h2>Settings</h2>
 <ul>
-<li><b>Account</b> – the Google account and sign-out, or the folder on the computer; user name and storage change.</li>
+<li><b>Account</b> – user name and an overview of the sources.</li>
 <li><b>Appearance</b> – language, font size, thumbnail size, default view and theme: Light, Dark, OpiKula style or Custom (own colours and window elements).</li>
 <li><b>Viewing</b> – default sorting of media and albums, slideshow time, video autoplay and loop.</li>
 <li><b>Storage</b> – space used, default download folder, sync interval and clearing the thumbnails.</li>

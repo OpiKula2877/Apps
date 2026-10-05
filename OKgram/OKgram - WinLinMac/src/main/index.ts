@@ -48,7 +48,8 @@ const controller = new Controller({
     status: (status) => broadcast('status', status),
     message: (message) => owner()?.webContents.send('message', message),
     transfers: (list) => broadcast('transfers', list),
-    settings: (settings) => broadcast('settings', settings)
+    settings: (settings) => broadcast('settings', settings),
+    sources: (sources) => broadcast('sources', sources)
   },
   loadSettings,
   saveSettings,
@@ -64,7 +65,7 @@ const controller = new Controller({
     }
   ),
   makeDrive: (tokens) => new DriveRestBackend(tokens),
-  makeLocal: (folder) => new LocalLibrary(folder, { trash: (path) => shell.trashItem(path) }),
+  makeLocal: (folder, subfolders) => new LocalLibrary(folder, { trash: (path) => shell.trashItem(path) }, subfolders),
   async pickFiles() {
     const result = await dialog.showOpenDialog(owner()!, {
       properties: ['openFile', 'multiSelections'],

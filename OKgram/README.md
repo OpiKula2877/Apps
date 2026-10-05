@@ -11,9 +11,12 @@ OKgram je prohlížeč fotek a videí pro Windows, Linux a macOS s alby, hvězdi
 
 ## Funkce
 
-- **Dvě úložiště**:
-  - *Google Disk*: složka `OKgram` na Disku, na každém počítači stejná knihovna.
-  - *Tento počítač*: libovolná složka i s podsložkami, bez přihlášení a bez internetu.
+- **Zdroje** v panelu vpravo, kolik jich chcete a v jakékoli kombinaci:
+  - *Složka v počítači*: libovolná složka (i s podsložkami), bez přihlášení a bez internetu.
+  - *Google Disk*: složka `OKgram` na Disku. Připojit jde i víc Google účtů najednou.
+  - Každý zdroj má název, ikonu a barvu. Zaškrtnutím určíte, které zdroje se zobrazují.
+  - Když je zaškrtnutých víc zdrojů, nahrávání se zeptá, kam soubory uložit.
+  - Album může obsahovat fotky z více zdrojů.
 - **Média**:
   - Mřížka nebo seznam, posuvník velikosti miniatur.
   - Hledání podle názvu, filtry Oblíbené, fotky / videa a barevné rámečky.
@@ -57,7 +60,7 @@ Stáhněte `OKgram-Setup.exe` na [apps.opikula.dev](https://apps.opikula.dev) a 
 2. Stáhněte kód přes [Git](https://git-scm.com) příkazem `git clone https://github.com/OpiKula2877/Apps.git`, nebo na GitHubu klikněte na **Code, Download ZIP** a ZIP rozbalte.
 3. Vyberte si:
 
-**Sestavit vlastní Setup.exe (Windows):** spusťte dvojklikem `OKgram - WinLinMac/build-setup.bat`. Skript stáhne závislosti, sestaví instalačku a uloží ji jako `Setup\OKgram-Setup.exe` ve složce `Apps`. Když Node.js chybí, nabídne, že ho nainstaluje.
+**Sestavit vlastní Setup.exe (Windows):** ve složce `OKgram - WinLinMac` spusťte `npm install` a pak `npm run dist:win`. Instalačku `OKgram-Setup-<verze>.exe` najdete ve složce `dist`.
 
 **Spustit bez instalace:** na Windows dvojklikem `OKgram - WinLinMac/run.bat`, na Linuxu a macOS `./run.sh`. Nebo příkazy:
 
@@ -82,7 +85,7 @@ Instalátory nejsou podepsané. Na Windows klikněte na „Další informace, P�
 1. V Google Cloud Console zapněte **Google Drive API**.
 2. V **Google Auth Platform** vyplňte Branding, v Audience zvolte **External** a v Data Access přidejte scope `.../auth/drive.file`.
 3. V **Clients** vytvořte klienta typu **Desktop app** a stáhněte JSON.
-4. V OKgram vyberte *Google Disk*, klikněte na *Vybrat client_secret.json…* a pak na *Přihlásit se přes Google*.
+4. V OKgram klikněte v panelu Zdroje na *Přidat zdroj → Google Disk*, vyberte *client_secret.json…* (jen když aplikace nemá vestavěný) a přihlaste se.
 
 V testovacím režimu přidejte svůj účet do *Test users*. Přihlášení pak vyprší po 7 dnech. Pro trvalé přihlášení aplikaci publikujte (*Publish app*).
 

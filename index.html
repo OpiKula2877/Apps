@@ -335,16 +335,14 @@ img { display: block; max-width: 100%; height: auto; }
 .note p { margin: 0; }
 .note p + p { margin-top: 8px; }
 
-/* ---- Feedback form, with the scribe: an OK guy who takes notes while you type, wears your mood and carries the
-   locked message away ---- */
+/* ---- Feedback form ---- */
 .feedback { padding-block: 120px; border-top: 1px solid var(--border); }
 .feedback h2 { font-size: clamp(44px, 6vw, 76px); line-height: 1; letter-spacing: -0.02em; margin: 0 0 20px; }
-.fb-body { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 64px; align-items: end; margin-top: 56px; }
+.fb-body { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 64px; align-items: center; margin-top: 56px; }
 .fb-stage { position: relative; max-width: 760px; }
-.fb-card { position: relative; padding: 32px; border: 1px solid var(--border); border-radius: 12px; background: rgba(23, 13, 14, 0.85);
-  transition: transform 0.7s cubic-bezier(0.6, 0, 0.3, 1), opacity 0.7s, border-radius 0.7s, border-color 0.3s; }
+.fb-card { position: relative; padding: 32px; border: 1px solid var(--border); border-radius: 12px; background: rgba(23, 13, 14, 0.85); transition: border-color 0.3s; }
 .fb-card:focus-within { border-color: #6A1A24; }
-.fb-fields { display: grid; gap: 10px; transition: opacity 0.3s, filter 0.3s; }
+.fb-fields { display: grid; gap: 10px; }
 .fb-label { padding: 0; font-size: 14px; font-weight: 700; color: var(--text); }
 .fb-group { margin: 14px 0 4px; padding: 0; border: 0; }
 .fb-group .fb-label { margin-bottom: 10px; }
@@ -381,58 +379,67 @@ img { display: block; max-width: 100%; height: auto; }
 .fb-send svg { width: 18px; height: 18px; }
 .fb-status { margin: 0; font-size: 13px; color: var(--muted); }
 .fb-status.error { color: #FF6B7A; }
-/* While sending: the text turns into ciphertext, a padlock snaps shut, the card folds into a packet and flies to the scribe. */
-.fb-cipher { position: absolute; inset: 32px; overflow: hidden; color: var(--accent); font-size: 13px; line-height: 1.5; word-break: break-all; white-space: pre-wrap; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-.fb-lock { position: absolute; left: 50%; top: 50%; width: 72px; height: 84px; margin: -42px 0 0 -36px; fill: none; stroke: var(--text); stroke-width: 3; stroke-linecap: round; opacity: 0; transform: scale(0.6); pointer-events: none; }
-.fb-lock rect { fill: var(--accent); stroke: var(--accent); }
-.fb-lock circle, .fb-lock rect + circle + path { stroke: #fff; }
-.fb-shackle { transform: translateY(-9px); transform-box: fill-box; }
-.is-sending .fb-fields { opacity: 0.08; filter: blur(1px); }
-.is-sending .fb-cipher { opacity: 1; }
-.is-sending .fb-lock { animation: lock-in 0.35s cubic-bezier(0.3, 1.6, 0.5, 1) 0.25s forwards; }
-.is-sending .fb-shackle { animation: lock-shut 0.2s ease-in 0.7s forwards; }
-.is-flying .fb-card { transform: translate(var(--fly-x, 300px), var(--fly-y, 80px)) scale(0.06); border-radius: 50%; opacity: 0; border-color: var(--accent); }
-@keyframes lock-in { to { opacity: 1; transform: scale(1); } }
-@keyframes lock-shut { to { transform: translateY(0); } }
-.fb-card.shake { animation: shake 0.4s; }
-@keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+.fb-card.shake { animation: fb-shake 0.4s; }
+@keyframes fb-shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+
+/* Sending: the pixel padlock drops onto the message and snaps shut with a small shake; an encryption wave runs out
+   from it over the form (drawn on .fb-wave); after sending, a second wave turns it into the delivered state. */
+.fb-wave { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 12px; pointer-events: none; image-rendering: pixelated; opacity: 0; }
+.is-sending .fb-wave, .is-delivering .fb-wave { opacity: 1; }
+.fb-lock { position: absolute; z-index: 2; left: 50%; top: 50%; width: 84px; height: 96px; margin: -48px 0 0 -42px; opacity: 0; pointer-events: none; }
+.fb-lock .k { fill: #F2E6E6; }
+.fb-lock .b { fill: #C8102E; }
+.fb-lock .h { fill: #FF5468; }
+.fb-lock .s { fill: #7A1424; }
+.fb-lock .d { fill: #0E0A0A; }
+.fb-shackle { transform: translateY(-3px); }
+.is-sending .fb-lock { animation: lock-drop 0.45s cubic-bezier(0.55, 0, 1, 0.45) forwards; }
+.is-locked .fb-lock { animation: lock-land 0.35s ease-out forwards; }
+.is-locked .fb-shackle { transform: none; transition: transform 0.08s ease-in; }
+.is-locked .fb-card { animation: fb-impact 0.3s ease-out; }
+.is-delivering .fb-lock { animation: lock-off 0.5s ease-in forwards; }
+@keyframes lock-drop { from { opacity: 1; transform: translateY(-220px); } to { opacity: 1; transform: none; } }
+@keyframes lock-land { 0% { opacity: 1; transform: scale(1.15, 0.85); } 30% { transform: translateX(-4px) rotate(-4deg); } 55% { transform: translateX(4px) rotate(3deg); } 80% { transform: translateX(-2px); } 100% { opacity: 1; transform: none; } }
+@keyframes lock-off { 0% { opacity: 1; transform: none; } 30% { opacity: 1; transform: translateY(-10px) scale(1.05); } 100% { opacity: 0; transform: translateY(-40px) scale(0.6); } }
+@keyframes fb-impact { 20% { transform: translate(-3px, 2px); } 45% { transform: translate(3px, -1px); } 70% { transform: translate(-2px, 1px); } }
 .fb-done { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 32px; text-align: center;
-  border: 1px solid var(--success); border-radius: 12px; background: rgba(23, 13, 14, 0.92); animation: done-in 0.5s cubic-bezier(0.3, 1.5, 0.5, 1); }
+  border: 1px solid var(--online); border-radius: 12px; background: rgba(23, 13, 14, 0.95); }
 .fb-done[hidden] { display: none; }
-.fb-done > svg { width: 56px; height: 56px; padding: 12px; border-radius: 50%; background: var(--success); color: #0E0A0A; }
+.fb-done > svg { width: 56px; height: 56px; padding: 12px; border-radius: 50%; background: var(--online); color: #0E0A0A; }
 .fb-done h3 { margin: 6px 0 0; font-size: 26px; }
 .fb-done p { margin: 0; max-width: 40ch; color: var(--muted); }
 .fb-again { margin-top: 10px; padding: 8px 16px; font: inherit; font-weight: 700; color: var(--text); background: none; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; }
 .fb-again:hover { border-color: var(--accent); }
-@keyframes done-in { from { opacity: 0; transform: scale(0.9); } }
-/* Characters you type fly over to the scribe. */
+.is-delivered .fb-card { visibility: hidden; }
+/* Characters you type fly over to the pencil. */
 .fb-bit { position: fixed; z-index: 50; color: var(--accent); font-weight: 700; font-size: 14px; pointer-events: none; animation: bit-fly 0.7s cubic-bezier(0.5, 0, 0.6, 1) forwards; }
 @keyframes bit-fly { 0% { opacity: 0; transform: translate(0, 0) scale(0.6); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.2); } }
 
-/* The scribe. Idle: breathes and looks around. Typing: scribbles fast. Mood: takes your mood's colour and mouth.
-   Sending: jumps to catch the packet. Sent: waves. */
-.fb-guy { position: relative; width: 200px; justify-self: center; }
-.fb-guy .okguy { width: 100%; height: auto; }
-.fb-say { top: -12px; left: -40px; opacity: 1; animation: none; transform-origin: 0 100%; transition: transform 0.25s cubic-bezier(0.3, 1.6, 0.5, 1), opacity 0.25s; }
-.fb-say:empty { opacity: 0; transform: scale(0.6); }
-.fb-say.pop { animation: say-pop 0.35s cubic-bezier(0.3, 1.6, 0.5, 1); }
-@keyframes say-pop { from { transform: scale(0.6); } }
-.guy-post .okguy-body { animation: post-idle 5s ease-in-out infinite; transition: color 0.4s; }
-.guy-post .okguy-mouth { transition: d 0.3s; }
-@keyframes post-idle { 0%, 100% { transform: none; } 30% { transform: rotate(-4deg); } 60% { transform: rotate(3deg); } }
-.feedback.is-typing .guy-post .okguy-body { animation: post-lean 0.6s ease-in-out infinite alternate; }
-.feedback.is-typing .guy-post .okguy-arm-r { animation: scribble 0.16s ease-in-out infinite alternate; }
-.feedback.is-typing .guy-post .okguy-arm-l { transform: rotate(20deg); transition: transform 0.2s; }
-@keyframes post-lean { from { transform: rotate(-6deg); } to { transform: rotate(-3deg) translateY(-2px); } }
-@keyframes scribble { from { transform: rotate(10deg); } to { transform: rotate(30deg); } }
-.feedback[data-mood="super"] .guy-post .okguy-body { color: #4CC77A; }
-.feedback[data-mood="meh"] .guy-post .okguy-body { color: #D9A13B; }
-.feedback[data-mood="bad"] .guy-post .okguy-body { color: #FF6B7A; }
-.feedback.is-sending .guy-post .okguy-body { animation: hop 0.45s ease-in-out infinite; }
-.feedback.is-sending .guy-post .okguy-arm-r { animation: arm-up-r 0.3s ease-out forwards; }
-.feedback.is-sending .guy-post .okguy-arm-l { animation: arm-up-l 0.3s ease-out forwards; }
-.feedback.is-sent .guy-post .okguy-arm-r { animation: greet-arm-r 3s ease-in-out 1; }
-.feedback.is-sent .guy-post .okguy-body { animation: greet-body 3s ease-in-out 1; animation-delay: -0.7s; }
+/* The feedback icon: the pencil keeps writing the lines, the faces blink. Typing makes the pencil hurry,
+   the chosen mood lights up its face, sending makes it hop. */
+.fb-icon { width: 220px; justify-self: center; animation: ico-float 4s ease-in-out infinite; }
+.fb-ico { display: block; width: 100%; height: auto; overflow: visible; fill: none; stroke: var(--text); stroke-width: 20; stroke-linecap: round; stroke-linejoin: round; }
+.fb-ico .eye { fill: var(--text); stroke: none; }
+.fb-ico .tip { fill: var(--accent); stroke: var(--accent); stroke-width: 8; }
+.ico-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: ico-write 6s ease-in-out infinite; }
+.ico-line.l2 { animation-delay: 0.6s; }
+.ico-line.l3 { animation-delay: 1.2s; }
+.ico-pencil { transform-box: fill-box; transform-origin: 0 50%; animation: ico-pencil 1.2s ease-in-out infinite; }
+.ico-face { transform-box: fill-box; transform-origin: center; transition: transform 0.35s cubic-bezier(0.3, 1.6, 0.5, 1), stroke 0.3s; }
+.ico-face .eye { transform-box: fill-box; transform-origin: center; animation: eye-blink 4.6s infinite; }
+.ico-bad .eye { animation-delay: 1.3s; }
+.feedback.is-typing .ico-pencil { animation-duration: 0.22s; }
+.feedback[data-mood="super"] .ico-good, .feedback[data-mood="good"] .ico-good { stroke: #4CC77A; transform: scale(1.12); }
+.feedback[data-mood="super"] .ico-good .eye, .feedback[data-mood="good"] .ico-good .eye { fill: #4CC77A; }
+.feedback[data-mood="meh"] .ico-bad { stroke: #D9A13B; transform: scale(1.12); }
+.feedback[data-mood="meh"] .ico-bad .eye { fill: #D9A13B; }
+.feedback[data-mood="bad"] .ico-bad { stroke: #FF6B7A; transform: scale(1.12) rotate(-6deg); }
+.feedback[data-mood="bad"] .ico-bad .eye { fill: #FF6B7A; }
+.feedback.is-sending .fb-icon, .feedback.is-locked .fb-icon { animation: hop 0.5s ease-in-out infinite; }
+.feedback.is-delivered .ico-good { stroke: #4CC77A; transform: scale(1.15); }
+@keyframes ico-float { 50% { transform: translateY(-8px); } }
+@keyframes ico-write { 0% { stroke-dashoffset: 1; } 18%, 82% { stroke-dashoffset: 0; opacity: 1; } 95%, 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes ico-pencil { 0%, 100% { transform: none; } 50% { transform: translate(-8px, 5px) rotate(-5deg); } }
 
 /* Background: a faint grid of dots on a canvas behind everything. */
 .bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
@@ -449,7 +456,7 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
 @media (max-width: 860px) {
   .feedback { padding-block: 80px; }
   .fb-body { grid-template-columns: minmax(0, 1fr); gap: 24px; margin-top: 40px; }
-  .fb-guy { order: -1; width: 120px; justify-self: end; margin-bottom: -32px; }
+  .fb-icon { order: -1; width: 120px; justify-self: end; margin-bottom: -16px; }
   .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; padding-block: 40px 72px; gap: 8px; }
   .hero-guy { order: -1; justify-self: end; width: 120px; }
   .app { padding-block: 80px; }
@@ -461,7 +468,6 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
 }
 @media (max-width: 520px) {
   .fb-card { padding: 20px; }
-  .fb-cipher { inset: 20px; }
   .fb-mood { width: calc(50% - 4px); }
   .fb-send { width: 100%; justify-content: center; }
   .wrap { padding-inline: 16px; }
@@ -484,8 +490,10 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
   .swap, .features .feat.on::before, .scene-cur, .okguy, .okguy *, .js .hero-text > *, .js .hero-guy { animation: none !important; }
   .say { animation: none; opacity: 1; }
   .js .reveal { opacity: 1; transform: none; transition: none; }
-  .pick, .pick .arr, .install-body, .install-grid, .chev, .guy-peek, .fb-card, .fb-mood, .fb-mood svg { transition: none; }
-  .fb-bit { display: none; }
+  .pick, .pick .arr, .install-body, .install-grid, .chev, .guy-peek, .fb-mood, .fb-mood svg, .ico-face { transition: none; }
+  .fb-bit, .fb-wave, .fb-lock { display: none; }
+  .fb-icon, .ico-line, .ico-pencil, .ico-face .eye { animation: none; }
+  .ico-line { stroke-dashoffset: 0; }
 }
 </style>
 <script>document.documentElement.classList.add('js')</script>
@@ -581,14 +589,14 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
         <div data-for="pc">
           <div class="window">
             <div class="window-bar"><img src="assets/img/icon.png" alt="">OKfetch<span aria-hidden="true">– □ ×</span></div>
-            <img src="assets/img/okfetch-pc.webp" width="1180" height="720" alt="OKfetch na počítači: seznam kontaktů a skupin vlevo, šifrovaný chat s Alenou vpravo" data-i18n-alt="OKfetch on a computer: contacts and groups on the left, an encrypted chat with Alena on the right">
+            <img src="assets/img/okfetch-pc.webp" data-i18n-src="assets/img/okfetch-pc-en.webp" width="1180" height="720" alt="OKfetch na počítači: seznam kontaktů a skupin vlevo, šifrovaný chat s Alenou vpravo" data-i18n-alt="OKfetch on a computer: contacts and groups on the left, an encrypted chat with Alena on the right">
           </div>
           <p class="caption" data-i18n="t9">Šifrovaný chat, čekající žádost o kontakt a skupina.</p>
         </div>
         <div data-for="phone" hidden>
           <div class="phones">
-            <div class="phone"><img src="assets/img/okfetch-phone.webp" width="540" height="1169" alt="OKfetch na telefonu: šifrovaný chat" data-i18n-alt="OKfetch on a phone: an encrypted chat" loading="lazy"></div>
-            <div class="phone"><img src="assets/img/okfetch-qr.webp" width="540" height="1169" alt="OKfetch na telefonu: profil s QR kódem identifikátoru" data-i18n-alt="OKfetch on a phone: the profile with the QR code of the identifier" loading="lazy"></div>
+            <div class="phone"><img src="assets/img/okfetch-phone.webp" data-i18n-src="assets/img/okfetch-phone-en.webp" width="540" height="1169" alt="OKfetch na telefonu: šifrovaný chat" data-i18n-alt="OKfetch on a phone: an encrypted chat" loading="lazy"></div>
+            <div class="phone"><img src="assets/img/okfetch-qr.webp" data-i18n-src="assets/img/okfetch-qr-en.webp" width="540" height="1169" alt="OKfetch na telefonu: profil s QR kódem identifikátoru" data-i18n-alt="OKfetch on a phone: the profile with the QR code of the identifier" loading="lazy"></div>
           </div>
           <p class="caption" data-i18n="t10">Chat a profil s QR kódem, který druhý telefon naskenuje.</p>
         </div>
@@ -714,13 +722,13 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
         <div data-for="pc">
           <div class="window">
             <div class="window-bar"><img src="assets/img/icon.png" alt="">OKpass<span aria-hidden="true">– □ ×</span></div>
-            <img src="assets/img/okpass-pc.webp" width="1180" height="723" alt="OKpass na počítači: záznam s webem, uživatelským jménem, heslem a vlastním polem PIN" data-i18n-alt="OKpass on a computer: an entry with website, username, password and a custom PIN field" loading="lazy">
+            <img src="assets/img/okpass-pc.webp" data-i18n-src="assets/img/okpass-pc-en.webp" width="1180" height="723" alt="OKpass na počítači: záznam s webem, uživatelským jménem, heslem a vlastním polem PIN" data-i18n-alt="OKpass on a computer: an entry with website, username, password and a custom PIN field" loading="lazy">
           </div>
           <p class="caption" data-i18n="t43">Záznam hesla s měřičem síly a vlastním polem.</p>
         </div>
         <div data-for="phone" hidden>
           <div class="phones">
-            <div class="phone"><img src="assets/img/okpass-phone.webp" width="540" height="1127" alt="OKpass na telefonu: detail hesla s generátorem a měřičem síly" data-i18n-alt="OKpass on a phone: a password entry with the generator and the strength meter" loading="lazy"></div>
+            <div class="phone"><img src="assets/img/okpass-phone.webp" data-i18n-src="assets/img/okpass-phone-en.webp" width="540" height="1127" alt="OKpass na telefonu: detail hesla s generátorem a měřičem síly" data-i18n-alt="OKpass on a phone: a password entry with the generator and the strength meter" loading="lazy"></div>
           </div>
           <p class="caption" data-i18n="t44">Detail hesla na telefonu.</p>
         </div>
@@ -837,7 +845,7 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
         <div data-for="pc">
           <div class="window">
             <div class="window-bar"><img src="assets/img/icon.png" alt="">OKgram<span aria-hidden="true">– □ ×</span></div>
-            <img src="assets/img/okgram-pc.webp" width="1180" height="683" alt="OKgram na počítači: mřížka fotek s hvězdičkami a barevnými rámečky" data-i18n-alt="OKgram on a computer: a grid of photos with stars and colour frames" loading="lazy">
+            <img src="assets/img/okgram-pc.webp" data-i18n-src="assets/img/okgram-pc-en.webp" width="1180" height="683" alt="OKgram na počítači: mřížka fotek s hvězdičkami a barevnými rámečky" data-i18n-alt="OKgram on a computer: a grid of photos with stars and colour frames" loading="lazy">
           </div>
           <p class="caption" data-i18n="t93">Knihovna s hvězdičkami a barevnými rámečky.</p>
         </div>
@@ -950,19 +958,29 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
               <p class="fb-status" role="status" aria-live="polite"></p>
             </div>
           </div>
-          <div class="fb-cipher" aria-hidden="true"></div>
-          <svg class="fb-lock" viewBox="0 0 48 56" aria-hidden="true"><path class="fb-shackle" d="M12 26V16a12 12 0 0 1 24 0v10"/><rect x="6" y="24" width="36" height="28" rx="5"/><circle cx="24" cy="36" r="4"/><path d="M24 39v6"/></svg>
         </form>
         <div class="fb-done" tabindex="-1" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
-          <h3 data-i18n="t116">Odesláno. Díky!</h3>
-          <p data-i18n="t117">Zpráva je zamčená a na cestě. Když bude potřeba, odpovím vám na e-mail.</p>
+          <h3 data-i18n="t116">Doručeno. Díky!</h3>
+          <p data-i18n="t117">Zpráva byla zašifrovaná a je na cestě. Když bude potřeba, odpovím vám na e-mail.</p>
           <button class="fb-again" type="button" data-i18n="t118">Napsat další</button>
         </div>
+        <canvas class="fb-wave" aria-hidden="true"></canvas>
+        <svg class="fb-lock" viewBox="0 0 14 16" shape-rendering="crispEdges" aria-hidden="true">
+            <g class="fb-shackle"><rect class="k" x="4" y="0" width="6" height="1"/><rect class="k" x="3" y="1" width="2" height="1"/><rect class="k" x="9" y="1" width="2" height="1"/><rect class="k" x="3" y="2" width="1" height="5"/><rect class="k" x="10" y="2" width="1" height="5"/></g>
+            <rect class="b" x="1" y="6" width="12" height="10"/><rect class="h" x="1" y="6" width="12" height="1"/><rect class="s" x="1" y="15" width="12" height="1"/><rect class="s" x="12" y="7" width="1" height="8"/><rect class="d" x="6" y="9" width="2" height="2"/><rect class="d" x="6" y="11" width="2" height="2"/><rect class="d" x="5" y="10" width="1" height="1"/><rect class="d" x="8" y="10" width="1" height="1"/>
+          </svg>
       </div>
-      <div class="fb-guy reveal" style="--i: 1" aria-hidden="true">
-        <span class="say fb-say"></span>
-        <svg class="okguy guy-post" viewBox="0 0 100 120" aria-hidden="true" data-tap><g class="okguy-body"><g class="okguy-legs"><path class="okguy-leg okguy-leg-l" d="M50 58 28 98"/><path class="okguy-leg okguy-leg-r" d="M50 58 72 98"/></g><path class="okguy-torso" d="M36 56H64"/><path class="okguy-arm okguy-arm-l" d="M36 56H18"/><path class="okguy-arm okguy-arm-r" d="M64 56H82"/><circle class="okguy-head" cx="50" cy="28" r="20"/><g class="okguy-face"><ellipse cx="44" cy="25" rx="2.4" ry="3.2"/><ellipse cx="56" cy="25" rx="2.4" ry="3.2"/><path class="okguy-mouth" d="M44 33q6 5 12 0"/></g></g></svg>
+      <div class="fb-icon reveal" style="--i: 1" aria-hidden="true">
+        <svg class="fb-ico" viewBox="0 0 512 512" aria-hidden="true">
+          <path class="ico-bubble" d="M296 100H92a32 32 0 0 0-32 32v246a32 32 0 0 0 32 32h126l38 54 38-54h126a32 32 0 0 0 32-32V244M452 190v-58a32 32 0 0 0-32-32h-12"/>
+          <path class="ico-line l1" pathLength="1" d="M108 156H286"/>
+          <path class="ico-line l2" pathLength="1" d="M108 198H256"/>
+          <path class="ico-line l3" pathLength="1" d="M108 240H128M162 240H244"/>
+          <g class="ico-face ico-good"><circle cx="176" cy="326" r="52"/><circle class="eye" cx="157" cy="313" r="7"/><circle class="eye" cx="195" cy="313" r="7"/><path d="M150 342q26 24 52 0"/></g>
+          <g class="ico-face ico-bad"><circle cx="336" cy="326" r="52"/><circle class="eye" cx="317" cy="313" r="7"/><circle class="eye" cx="355" cy="313" r="7"/><path d="M310 356q26-22 52 0"/></g>
+          <g transform="translate(300 222) rotate(-45)"><g class="ico-pencil"><path d="M0 0 42-24H220V24H42Z"/><path d="M188-24V24"/><path class="tip" d="M0 0 15-9V9Z"/></g></g>
+        </svg>
       </div>
     </div>
   </section>
@@ -1097,8 +1115,8 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
     "t113": "Bad",
     "t114": "Message",
     "t115": "Send",
-    "t116": "Sent. Thank you!",
-    "t117": "The message is locked and on its way. If needed, I will reply to your e-mail.",
+    "t116": "Delivered. Thank you!",
+    "t117": "The message was encrypted and is on its way. If needed, I will reply to your e-mail.",
     "t118": "Write another",
     "t102": "OKgram only sees files it uploaded to Drive itself. Photos put into the folder through the Google Drive website do not show up, upload them through OKgram."
   }
@@ -1120,6 +1138,7 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
   for (const el of document.querySelectorAll('[data-i18n]')) ORIG.set(el, el.innerHTML)
   for (const el of document.querySelectorAll('[data-i18n-alt]')) ORIG.set(el, el.alt)
   for (const el of document.querySelectorAll('[data-i18n-aria]')) ORIG.set(el, el.getAttribute('aria-label'))
+  for (const el of document.querySelectorAll('[data-i18n-src]')) ORIG.set(el, el.getAttribute('src'))
   const PLACEHOLDER = new Map([...document.querySelectorAll('[data-i18n-ph]')].map((el) => [el, el.placeholder]))
   let lang = 'cs'
   const langHooks = []
@@ -1134,6 +1153,8 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
     for (const el of document.querySelectorAll('[data-i18n-alt]')) el.alt = next === 'en' ? el.dataset.i18nAlt : ORIG.get(el)
     for (const el of document.querySelectorAll('[data-i18n-aria]')) el.setAttribute('aria-label', next === 'en' ? el.dataset.i18nAria : ORIG.get(el))
     for (const b of document.querySelectorAll('.lang button')) b.setAttribute('aria-pressed', String(b.dataset.lang === next))
+    // Screenshots of the apps in the chosen language.
+    for (const el of document.querySelectorAll('[data-i18n-src]')) el.setAttribute('src', next === 'en' ? el.dataset.i18nSrc : ORIG.get(el))
     for (const [el, cs] of PLACEHOLDER) el.placeholder = next === 'en' ? el.dataset.i18nPh : cs
     for (const hook of langHooks) hook()
   }
@@ -2188,7 +2209,7 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
   }
   for (const link of document.querySelectorAll('.download, .alt-zip')) {
     link.addEventListener('click', () => {
-      const box = link.closest('[data-app]').querySelector('.install')
+      const box = link.closest('[data-app]')?.querySelector('.install')
       if (box) setInstall(box, true)
     })
   }
@@ -2200,54 +2221,32 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
   const FEEDBACK_CC = 'samuelpelc464@gmail.com'
   const fbSection = document.querySelector('#feedback')
   if (fbSection) {
+    const stage = fbSection.querySelector('.fb-stage')
     const form = fbSection.querySelector('.fb-card')
     const email = form.querySelector('#fb-email')
     const text = form.querySelector('#fb-msg')
     const count = form.querySelector('.fb-count')
     const status = form.querySelector('.fb-status')
-    const cipher = form.querySelector('.fb-cipher')
     const done = fbSection.querySelector('.fb-done')
-    const say = fbSection.querySelector('.fb-say')
-    const guy = fbSection.querySelector('.guy-post')
-    const mouth = guy.querySelector('.okguy-mouth')
-    const SAY = {
-      idle: ['Sem s tím!', 'Tell me!'], typing: ['Píšu si…', 'Taking notes…'], super: ['Jé, díky!', 'Yay, thanks!'], good: ['Fajn!', 'Nice!'],
-      meh: ['Hmm, co zlepšit?', 'Hmm, what to improve?'], bad: ['Au. Co opravit?', 'Ouch. What to fix?'], sending: ['Zamykám a nesu!', 'Locking it up!'],
-      sent: ['Doručeno!', 'Delivered!'], invalid: ['Ještě něco chybí', 'Something is missing'], error: ['Nepovedlo se', 'That failed']
-    }
+    const wave = fbSection.querySelector('.fb-wave')
+    const pencil = fbSection.querySelector('.ico-pencil')
     const MSG_FB = {
       email: ['Napište prosím platný e-mail.', 'Please enter a valid e-mail.'],
       text: ['Napište prosím aspoň pár slov.', 'Please write at least a few words.'],
-      sending: ['Odesílám…', 'Sending…'],
+      sending: ['Šifruji a odesílám…', 'Encrypting and sending…'],
+      activate: ['Formulář ještě čeká na aktivaci. Zkuste to prosím později.', 'The form still waits for activation. Please try again later.'],
       error: ['Zprávu se nepodařilo odeslat. Zkuste to prosím za chvíli znovu.', 'The message could not be sent. Please try again in a moment.']
     }
-    const MOUTH = { super: 'M42 32q8 8 16 0', good: 'M44 33q6 5 12 0', meh: 'M44 35h12', bad: 'M44 37q6-5 12 0', none: 'M44 33q6 5 12 0' }
     const t = (pair) => pair[lang === 'en' ? 1 : 0]
-    let sayKey = 'idle'
-    const setSay = (key) => {
-      sayKey = key
-      say.textContent = t(SAY[key])
-      say.classList.remove('pop')
-      void say.offsetWidth
-      say.classList.add('pop')
-    }
-    setSay('idle')
-    langHooks.push(() => { say.textContent = t(SAY[sayKey]) })
-    const mood = () => (form.querySelector('input[name="mood"]:checked') || {}).value || ''
+    const wait = (ms) => new Promise((r) => setTimeout(r, reduceMotion.matches ? 0 : ms))
 
-    // Typing: the scribe scribbles and the typed characters fly over to him.
+    // Typing: the pencil hurries and the typed characters fly over to it.
     let typingTimer = 0, lastBit = 0
-    const typing = () => {
-      fbSection.classList.add('is-typing')
-      if (sayKey !== 'typing') setSay('typing')
-      clearTimeout(typingTimer)
-      typingTimer = setTimeout(() => { fbSection.classList.remove('is-typing'); setSay(mood() || 'idle') }, 900)
-    }
     const flyBit = (from, ch) => {
       const now = performance.now()
       if (reduceMotion.matches || now - lastBit < 60 || !ch.trim()) return
       lastBit = now
-      const a = from.getBoundingClientRect(), b = guy.getBoundingClientRect()
+      const a = from.getBoundingClientRect(), b = pencil.getBoundingClientRect()
       if (!b.width) return
       const bit = document.createElement('span')
       bit.className = 'fb-bit'
@@ -2256,107 +2255,122 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
       const x = a.right - 30 - Math.random() * 60, y = a.bottom - 24 - Math.random() * 20
       bit.style.left = x + 'px'
       bit.style.top = y + 'px'
-      bit.style.setProperty('--dx', (b.left + b.width * 0.5 - x) + 'px')
-      bit.style.setProperty('--dy', (b.top + b.height * 0.3 - y) + 'px')
+      bit.style.setProperty('--dx', (b.left + b.width * 0.3 - x) + 'px')
+      bit.style.setProperty('--dy', (b.top + b.height * 0.7 - y) + 'px')
       document.body.append(bit)
       bit.addEventListener('animationend', () => bit.remove())
     }
     for (const field of [email, text]) {
       field.addEventListener('input', (e) => {
         field.classList.remove('bad')
-        typing()
+        fbSection.classList.add('is-typing')
+        clearTimeout(typingTimer)
+        typingTimer = setTimeout(() => fbSection.classList.remove('is-typing'), 900)
         if (e.data) flyBit(field, e.data.slice(-1))
         if (field === text) count.textContent = `${text.value.length} / 3000`
       })
     }
-    form.addEventListener('change', (e) => {
-      if (e.target.name !== 'mood') return
-      fbSection.dataset.mood = e.target.value
-      mouth.setAttribute('d', MOUTH[e.target.value])
-      setSay(e.target.value)
-    })
+    form.addEventListener('change', (e) => { if (e.target.name === 'mood') fbSection.dataset.mood = e.target.value })
 
-    // Sending: check, scramble the text into ciphertext, lock, fold into a packet, fly to the scribe, then thank.
-    const scramble = (source, ms) => new Promise((resolve) => {
-      const chars = [...source.slice(0, 600)], t0 = performance.now()
-      const tick = () => {
-        const p = Math.min(1, (performance.now() - t0) / ms)
-        cipher.textContent = chars.map((ch, i) => (ch === '\n' || ch === ' ' || i / chars.length > p ? ch : CIPHER[Math.floor(hash(i, 2, Math.floor(performance.now() / 50)) * CIPHER.length)])).join('')
-        if (p < 1) setTimeout(tick, 40)
-        else resolve()
+    // The wave: pixels of 6 px over the whole card. Behind the front of an "encrypt" wave lies ciphertext noise; behind the
+    // front of a "reveal" wave the noise is gone and what lies under it (the delivered note, or the form again) shows.
+    const CELL = 6
+    const NOISE = ['#1E1012', '#2E1418', '#2E1418', '#4A1218', '#7A1424']
+    const FRONT = { encrypt: ['#C8102E', '#FF5468', '#F2E6E6'], reveal: ['#4CC77A', '#F2E6E6', '#4CC77A'], back: ['#C8102E', '#FF5468', '#F2E6E6'] }
+    let waveState = null, waveTimer = 0
+    const drawWave = () => {
+      const st = waveState
+      if (!st) return
+      const ctx = wave.getContext('2d'), now = performance.now()
+      const p = st.ms ? Math.min(1, (now - st.t0) / st.ms) : 1
+      const R = p * (st.max + CELL * 6), band = CELL * 4, k = Math.floor(now / 90)
+      ctx.clearRect(0, 0, st.cols * CELL, st.rows * CELL)
+      for (let y = 0; y < st.rows; y++) {
+        for (let x = 0; x < st.cols; x++) {
+          const d = Math.hypot(x * CELL + CELL / 2 - st.cx, y * CELL + CELL / 2 - st.cy) + hash(x, y, 4) * CELL * 3
+          let col = null
+          if (d < R - band) col = st.mode === 'encrypt' ? NOISE[Math.floor(hash(x, y, k + Math.floor(hash(x, y, 2) * 7)) * NOISE.length)] : null
+          else if (d < R) col = FRONT[st.mode][Math.floor(hash(x, y, k) * 3)]
+          else col = st.mode === 'encrypt' ? null : NOISE[Math.floor(hash(x, y, k + Math.floor(hash(x, y, 2) * 7)) * NOISE.length)]
+          if (col) { ctx.fillStyle = col; ctx.fillRect(x * CELL, y * CELL, CELL, CELL) }
+        }
       }
-      tick()
+      if (p >= 1 && st.resolve) { const r = st.resolve; st.resolve = null; r() }
+      waveTimer = setTimeout(drawWave, 33)
+    }
+    const runWave = (mode, ms) => new Promise((resolve) => {
+      const box = stage.getBoundingClientRect(), dpr = 1
+      const cols = Math.ceil(box.width / CELL), rows = Math.ceil(box.height / CELL)
+      wave.width = cols * CELL * dpr
+      wave.height = rows * CELL * dpr
+      const cx = box.width / 2, cy = box.height / 2
+      waveState = { mode, ms: reduceMotion.matches ? 0 : ms, t0: performance.now(), cols, rows, cx, cy, max: Math.hypot(Math.max(cx, box.width - cx), Math.max(cy, box.height - cy)), resolve }
+      clearTimeout(waveTimer)
+      drawWave()
     })
-    const wait = (ms) => new Promise((r) => setTimeout(r, reduceMotion.matches ? 0 : ms))
+    const stopWave = () => {
+      clearTimeout(waveTimer)
+      waveState = null
+      wave.getContext('2d').clearRect(0, 0, wave.width, wave.height)
+    }
+
     const fail = (message) => {
       status.textContent = message
       status.classList.add('error')
       form.classList.remove('shake')
       void form.offsetWidth
       form.classList.add('shake')
-      setSay('invalid')
     }
+    let busy = false
     form.addEventListener('submit', async (e) => {
       e.preventDefault()
-      if (fbSection.classList.contains('is-sending')) return
+      if (busy) return
       status.classList.remove('error')
       status.textContent = ''
       if (!email.checkValidity() || !email.value.trim()) { email.classList.add('bad'); email.focus(); return fail(t(MSG_FB.email)) }
       if (text.value.trim().length < 3) { text.classList.add('bad'); text.focus(); return fail(t(MSG_FB.text)) }
       if (form.querySelector('.fb-honey').value) return
-      const data = new FormData(form)
-      const app = data.get('app') || 'Web', feel = mood()
+      busy = true
+      const app = new FormData(form).get('app') || 'Web', feel = fbSection.dataset.mood || ''
       const payload = {
-        email: email.value.trim(),
-        app,
-        mood: feel || '-',
-        message: text.value.trim(),
-        language: lang,
-        _subject: `OK Apps · ${app} · ${feel || 'feedback'}`,
-        _replyto: email.value.trim(),
-        _cc: FEEDBACK_CC,
-        _template: 'table',
-        _captcha: 'false'
+        email: email.value.trim(), app, mood: feel || '-', message: text.value.trim(), language: lang,
+        _subject: `OK Apps · ${app} · ${feel || 'feedback'}`, _replyto: email.value.trim(), _cc: FEEDBACK_CC, _template: 'table', _captcha: 'false'
       }
-      fbSection.classList.add('is-sending')
-      setSay('sending')
       status.textContent = t(MSG_FB.sending)
-      const g = guy.getBoundingClientRect(), f = form.getBoundingClientRect()
-      form.style.setProperty('--fly-x', (g.left + g.width / 2 - (f.left + f.width / 2)) + 'px')
-      form.style.setProperty('--fly-y', (g.top + g.height * 0.45 - (f.top + f.height / 2)) + 'px')
       const send = fetch(`https://formsubmit.co/ajax/${FEEDBACK_TO}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(payload)
-      }).then((r) => r.json()).then((r) => String(r.success) === 'true').catch(() => false)
-      await scramble(payload.message, reduceMotion.matches ? 0 : 700)
-      await wait(350)
-      fbSection.classList.add('is-flying')
-      const [ok] = await Promise.all([send, wait(800)])
-      fbSection.classList.remove('is-sending')
-      cipher.textContent = ''
+        method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(payload)
+      }).then((r) => r.json()).catch(() => ({ success: 'false' }))
+
+      // 1. The padlock drops, 2. lands with a shake and snaps shut, 3. the encryption wave runs out from it.
+      fbSection.classList.add('is-sending')
+      await wait(450)
+      fbSection.classList.add('is-locked')
+      await runWave('encrypt', 1000)
+      const [res] = await Promise.all([send, wait(300)])
+      const ok = String(res.success) === 'true'
+      // 4. A second wave: behind it the delivered note, or the form back with the error.
+      fbSection.classList.add('is-delivering')
+      if (ok) {
+        fbSection.classList.add('is-delivered')
+        done.hidden = false
+      }
+      await runWave(ok ? 'reveal' : 'back', 900)
+      stopWave()
+      fbSection.classList.remove('is-sending', 'is-locked', 'is-delivering')
+      busy = false
       if (ok) {
         form.reset()
         count.textContent = '0 / 3000'
-        mouth.setAttribute('d', MOUTH.super)
         delete fbSection.dataset.mood
         status.textContent = ''
-        done.hidden = false
         done.focus()
-        fbSection.classList.add('is-sent')
-        setSay('sent')
       } else {
-        fbSection.classList.remove('is-flying')
-        await wait(400)
-        fail(t(MSG_FB.error))
-        setSay('error')
+        fail(t(/activ/i.test(res.message || '') ? MSG_FB.activate : MSG_FB.error))
       }
     })
     fbSection.querySelector('.fb-again').addEventListener('click', () => {
       done.hidden = true
-      fbSection.classList.remove('is-flying', 'is-sent')
-      mouth.setAttribute('d', MOUTH.none)
-      setSay('idle')
+      fbSection.classList.remove('is-delivered')
       email.focus()
     })
   }

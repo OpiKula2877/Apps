@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import type { AccountInfo, Prefs, Quota, Settings, SortBy, StorageMode } from '../../../shared/ipc'
+import type { Prefs, Quota, Settings, SortBy, SourceState } from '../../../shared/ipc'
+import { FRAME_HEX } from '../../../shared/model'
 import { THUMB_MAX, THUMB_MIN } from '../../../shared/prefs'
 import { COLOR_ROLES, FLAG_NAMES, PRESETS, lightness, resolveColors, resolveFlags, type FlagName } from '../../../shared/theme'
 import { api } from '../api'
@@ -13,8 +14,6 @@ const TABS = ['account', 'appearance', 'viewing', 'storage', 'data'] as const
 const SORTS: SortBy[] = ['date', 'name', 'format', 'size']
 
 interface Props {
-  mode: StorageMode
-  account: AccountInfo
   username: string
   onClose: () => void
 }
@@ -28,29 +27,20 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-/** Sign out (Drive) or close the folder (local), asking first about changes not uploaded yet. */
-export async function leaveLibrary(mode: StorageMode, confirm: ReturnType<typeof useApp>['confirm'], t: ReturnType<typeof useApp>['t']): Promise<void> {
-  const ok = await confirm({
-    title: t(mode === 'drive' ? 'settings.logout' : 'settings.close_library'),
-    text: t(mode === 'drive' ? 'settings.logout_confirm' : 'settings.close_confirm'),
-    confirmText: t(mode === 'drive' ? 'settings.logout' : 'settings.close_library'),
-    danger: mode === 'drive'
-  })
-  if (!ok) return
-  if ((await api.leave()) === 'pending') {
-    const force = await confirm({ title: t('settings.logout'), text: t('logout.pending_confirm'), confirmText: t('settings.logout'), danger: true })
-    if (force) await api.leave(true)
-  }
-}
-
-export function SettingsDialog({ mode, account, username: initialName, onClose }: Props) {
-  const { t, settings, updateSettings, confirm, notify } = useApp()
+export function SettingsDialog({ username: initialName, onClose }: Props) {
+  const { t, settings, updateSettings, notify } = useApp()
   const [tab, setTab] = useState<(typeof TABS)[number]>('account')
   const [username, setUsername] = useState(initialName)
   const [base, setBase] = useState<keyof typeof PRESETS>(settings.theme === 'custom' ? 'opikula' : settings.theme)
-  const [quota, setQuota] = useState<Quota | null | undefined>(undefined)
+  const [quota, setQuota] = useState<Quota[] | undefined>(undefined)
+  const [sources, setSources] = useState<SourceState[]>([])
   const [cache, setCache] = useState<number | null>(null)
   const size = (bytes: number): string => formatSize(bytes, settings.language)
+
+  useEffect(() => {
+    void api.getSources().then(setSources)
+    return api.onSources(setSources)
+  }, [])
 
   useEffect(() => {
     if (tab !== 'storage') return
@@ -75,16 +65,6 @@ export function SettingsDialog({ mode, account, username: initialName, onClose }
     notify(t('settings.username_saved'))
   }
 
-  const leave = async (): Promise<void> => {
-    onClose()
-    await leaveLibrary(mode, confirm, t)
-  }
-
-  const switchFolder = async (): Promise<void> => {
-    onClose()
-    await api.openLocal(true)
-  }
-
   const importSettings = async (): Promise<void> => {
     const result = await api.importSettings()
     if (result === 'invalid') notify(t('settings.import_invalid'), true)
@@ -92,30 +72,6 @@ export function SettingsDialog({ mode, account, username: initialName, onClose }
 
   const account_ = (
     <>
-      {mode === 'drive' ? (
-        <Group title={t('settings.google')}>
-          <p>{account.email}</p>
-          <p className="muted">{t('settings.drive_folder_info')}</p>
-          <div>
-            <button type="button" className="danger-outline" onClick={() => void leave()}>
-              <Icon name="logout" size={16} /> {t('settings.logout')}
-            </button>
-          </div>
-        </Group>
-      ) : (
-        <Group title={t('settings.local_folder')}>
-          <p className="mono-path">{account.email}</p>
-          <p className="muted">{t('settings.local_folder_info')}</p>
-          <div className="row wrap">
-            <button type="button" onClick={() => void switchFolder()}>
-              <Icon name="folder" size={16} /> {t('settings.change_folder')}
-            </button>
-            <button type="button" onClick={() => void leave()}>
-              <Icon name="logout" size={16} /> {t('settings.close_library')}
-            </button>
-          </div>
-        </Group>
-      )}
       <Group title={t('settings.username')}>
         <p className="muted">{t('settings.username_info')}</p>
         <div className="row">
@@ -125,14 +81,23 @@ export function SettingsDialog({ mode, account, username: initialName, onClose }
           </button>
         </div>
       </Group>
-      <Group title={t('settings.storage_kind')}>
-        <p>{t(mode === 'drive' ? 'settings.storage_drive' : 'settings.storage_local')}</p>
-        <p className="muted">{t('settings.storage_switch_info')}</p>
-        <div>
-          <button type="button" onClick={() => void leave()}>
-            {t('settings.storage_switch')}
-          </button>
-        </div>
+      <Group title={t('source.title')}>
+        <p className="muted">{t('settings.sources_info')}</p>
+        {sources.length ? (
+          <ul className="settings-sources">
+            {sources.map((source) => (
+              <li key={source.id}>
+                <span style={source.color ? { color: FRAME_HEX[source.color] } : undefined}>
+                  <Icon name={source.icon} size={16} />
+                </span>
+                <span className="grow min0 ellipsis">{source.name}</span>
+                <span className="muted ellipsis">{source.kind === 'drive' ? source.account?.email : source.path}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>{t('source.none')}</p>
+        )}
       </Group>
     </>
   )
@@ -262,30 +227,44 @@ export function SettingsDialog({ mode, account, username: initialName, onClose }
     </>
   )
 
+  const usageOf = (q: Quota) => {
+    const source = sources.find((s) => s.id === q.source)
+    if (!source) return null
+    return (
+      <div key={q.source} className="usage-row">
+        <div className="row">
+          <span style={source.color ? { color: FRAME_HEX[source.color] } : undefined}>
+            <Icon name={source.icon} size={16} />
+          </span>
+          <b className="grow ellipsis">{source.name}</b>
+        </div>
+        {q.limit ? (
+          <>
+            <div className="progress big">
+              <div className="progress-fill" style={{ width: `${Math.min(100, (q.used / q.limit) * 100)}%` }} />
+            </div>
+            <p>{t(source.kind === 'drive' ? 'settings.usage_drive' : 'settings.usage_disk', { used: size(q.used), limit: size(q.limit), free: size(Math.max(0, q.limit - q.used)) })}</p>
+          </>
+        ) : (
+          <p>{t('settings.usage_unlimited', { used: size(q.used) })}</p>
+        )}
+        <p className="muted">{t('settings.usage_library', { size: size(q.library) })}</p>
+      </div>
+    )
+  }
+
   const usage =
     quota === undefined ? (
       <p className="muted">{t('settings.usage_loading')}</p>
-    ) : quota === null ? (
-      <p className="muted">{t('settings.usage_unknown')}</p>
+    ) : quota.length ? (
+      quota.map(usageOf)
     ) : (
-      <>
-        {quota.limit ? (
-          <>
-            <div className="progress big">
-              <div className="progress-fill" style={{ width: `${Math.min(100, (quota.used / quota.limit) * 100)}%` }} />
-            </div>
-            <p>{t(mode === 'drive' ? 'settings.usage_drive' : 'settings.usage_disk', { used: size(quota.used), limit: size(quota.limit), free: size(quota.limit - quota.used) })}</p>
-          </>
-        ) : (
-          <p>{t('settings.usage_unlimited', { used: size(quota.used) })}</p>
-        )}
-        <p className="muted">{t('settings.usage_library', { size: size(quota.library) })}</p>
-      </>
+      <p className="muted">{t('settings.usage_unknown')}</p>
     )
 
   const storage = (
     <>
-      <Group title={t(mode === 'drive' ? 'settings.usage_title_drive' : 'settings.usage_title_disk')}>{usage}</Group>
+      <Group title={t('settings.usage_title')}>{usage}</Group>
       <Group title={t('settings.download_folder')}>
         <p className={settings.download_folder ? 'mono-path' : 'muted'}>{settings.download_folder ?? t('settings.download_ask')}</p>
         <div className="row wrap">
@@ -300,7 +279,7 @@ export function SettingsDialog({ mode, account, username: initialName, onClose }
         </div>
       </Group>
       <Group title={t('settings.sync')}>
-        <p className="muted">{t(mode === 'drive' ? 'settings.sync_info_drive' : 'settings.sync_info_local')}</p>
+        <p className="muted">{t('settings.sync_info')}</p>
         <div className="row">
           <input className="number" type="number" min={0} max={120} value={settings.sync_minutes} onChange={(e) => void updateSettings({ sync_minutes: Number(e.target.value) })} />
           <span className="muted">{settings.sync_minutes === 0 ? t('settings.sync_off') : 'min'}</span>

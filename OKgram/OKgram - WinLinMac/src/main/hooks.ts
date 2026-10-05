@@ -1,19 +1,17 @@
 // What the controller needs from Electron. Passed in as callbacks, so the controller
 // and the storage code run in tests without Electron.
-import type { Message, LibraryState, Screen, Settings, SyncState, Transfer } from '../shared/ipc'
+import type { ClientSecretResult, LibraryState, Message, Screen, Settings, SourceState, SyncState, Transfer } from '../shared/ipc'
 import type { LibraryData } from '../shared/model'
 import type { MediaBackend } from '../core/backend'
 import type { TokenProvider } from '../core/driveRest'
 
-export type ClientSecretResult = 'ok' | 'cancel' | 'invalid' | 'wrong_type'
-
 export interface AuthAdapter {
   hasClientSecret(): Promise<boolean>
   chooseClientSecret(): Promise<ClientSecretResult>
-  /** The stored sign-in, or null when the user has to sign in. */
-  load(): Promise<TokenProvider | null>
-  login(successText: string): Promise<TokenProvider>
-  logout(tokens: TokenProvider | null): Promise<void>
+  /** The stored sign-in of a source, or null. adoptLegacy: take over the token from before sources existed. */
+  load(source: string, adoptLegacy: boolean): Promise<TokenProvider | null>
+  login(source: string, successText: string): Promise<TokenProvider>
+  logout(source: string, tokens: TokenProvider | null): Promise<void>
 }
 
 export interface UiBridge {
@@ -24,6 +22,7 @@ export interface UiBridge {
   message(message: Message): void
   transfers(transfers: Transfer[]): void
   settings(settings: Settings): void
+  sources(sources: SourceState[]): void
 }
 
 export interface FileFilter {
@@ -36,11 +35,11 @@ export interface Hooks {
   loadSettings(): Settings
   saveSettings(settings: Settings): void
   cacheRoot: string
-  /** Suggested local library folder (Pictures/OKgram). */
+  /** Suggested folder for a new local source (Pictures/OKgram). */
   defaultFolder: string
   auth: AuthAdapter
   makeDrive(tokens: TokenProvider): MediaBackend
-  makeLocal(folder: string): MediaBackend
+  makeLocal(folder: string, subfolders: boolean): MediaBackend
   pickFiles(): Promise<string[]>
   pickFolder(title: string, defaultPath?: string): Promise<string | null>
   pickSaveFile(defaultName: string, filters: FileFilter[]): Promise<string | null>

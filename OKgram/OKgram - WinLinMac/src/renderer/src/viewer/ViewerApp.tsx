@@ -1,7 +1,7 @@
 // Viewer window: one photo or video at a time, arrows to the neighbours, zoom, rotation,
 // star, colour frame, details, download and slideshow (full screen).
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { LibraryState, Screen, ViewerContext } from '../../../shared/ipc'
+import type { LibraryState, SourceState, ViewerContext } from '../../../shared/ipc'
 import { FRAME_COLORS, FRAME_HEX, emptyData, metaOf, type LibraryData } from '../../../shared/model'
 import { api } from '../api'
 import { ContextMenu, type MenuState } from '../components/ContextMenu'
@@ -18,9 +18,9 @@ const HIDE_MS = 2500
 export function ViewerApp({ native }: { native: boolean }) {
   const { t, settings, notify } = useApp()
   const [context, setContext] = useState<ViewerContext>({ ids: [], index: 0, slideshow: false, serial: 0 })
-  const [library, setLibrary] = useState<LibraryState>({ media: [], online: true, loading: false })
+  const [library, setLibrary] = useState<LibraryState>({ media: [], loading: false })
   const [data, setData] = useState<LibraryData>(emptyData())
-  const [screen, setScreen] = useState<Screen>({ name: 'loading' })
+  const [sources, setSources] = useState<SourceState[]>([])
   const [index, setIndex] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [info, setInfo] = useState(false)
@@ -43,22 +43,18 @@ export function ViewerApp({ native }: { native: boolean }) {
     void api.getViewerContext().then(apply)
     void api.getLibrary().then(setLibrary)
     void api.getData().then(setData)
-    void api.getScreen().then(setScreen)
-    const offs = [api.onViewerContext(apply), api.onLibrary(setLibrary), api.onData(setData), api.onScreen(setScreen), api.onFullScreen(setFullScreen)]
+    void api.getSources().then(setSources)
+    const offs = [api.onViewerContext(apply), api.onLibrary(setLibrary), api.onData(setData), api.onSources(setSources), api.onFullScreen(setFullScreen)]
     return () => offs.forEach((off) => off())
   }, [apply])
 
-  // The library was closed (sign-out): nothing to show any more.
-  useEffect(() => {
-    if (screen.name === 'welcome') api.windowClose()
-  }, [screen.name])
 
   const byId = useMemo(() => new Map(library.media.map((m) => [m.id, m])), [library.media])
   const items = useMemo(() => context.ids.map((id) => byId.get(id)).filter((m) => m !== undefined), [context.ids, byId])
   const position = Math.min(index, Math.max(0, items.length - 1))
   const item = items[position]
   const meta = item ? metaOf(data, item.id) : null
-  const mode = screen.name === 'library' ? screen.mode : 'local'
+  const source = item ? sources.find((s) => s.id === item.source) : undefined
 
   const go = useCallback((step: number) => setIndex((i) => (items.length ? (i + step + items.length) % items.length : 0)), [items.length])
 
@@ -174,7 +170,7 @@ export function ViewerApp({ native }: { native: boolean }) {
               <h2 className="subheading grow">{t('details.title')}</h2>
               <IconButton icon="close" size={16} label={t('common.close')} onClick={() => setInfo(false)} />
             </div>
-            <DetailsTable item={item} data={data} mode={mode} />
+            <DetailsTable item={item} data={data} source={source} />
           </aside>
         )}
       </div>

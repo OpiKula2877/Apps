@@ -37,16 +37,20 @@ export function MediaGrid({ items, data, view, size, selection, onSelection, onO
   const [height, setHeight] = useState(600)
   const [scroll, setScroll] = useState(0)
 
+  const hasItems = items.length > 0
+  // The empty state and the grid are different elements: observe whichever is shown.
   useLayoutEffect(() => {
     const element = box.current
     if (!element) return
+    setWidth(element.clientWidth)
+    setHeight(element.clientHeight)
     const observer = new ResizeObserver(() => {
       setWidth(element.clientWidth)
       setHeight(element.clientHeight)
     })
     observer.observe(element)
     return () => observer.disconnect()
-  }, [])
+  }, [hasItems])
 
   // A different list (other album, filter) starts at the top.
   const first = items[0]?.id
@@ -88,7 +92,12 @@ export function MediaGrid({ items, data, view, size, selection, onSelection, onO
     event.dataTransfer.effectAllowed = 'copyMove'
   }
 
-  if (!items.length) return <div className="media-scroll empty-wrap">{empty}</div>
+  if (!hasItems)
+    return (
+      <div ref={box} className="media-scroll empty-wrap">
+        {empty}
+      </div>
+    )
 
   const cells: ReactNode[] = []
   for (let row = firstRow; row <= lastRow; row++) {

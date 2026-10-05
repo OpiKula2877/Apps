@@ -65,7 +65,7 @@ Stáhněte `OKfetch-Setup.exe` na [apps.opikula.dev](https://apps.opikula.dev) a
 2. Stáhněte kód přes [Git](https://git-scm.com) příkazem `git clone https://github.com/OpiKula2877/Apps.git`, nebo na GitHubu klikněte na **Code, Download ZIP** a ZIP rozbalte.
 3. Vyberte si:
 
-**Sestavit vlastní Setup.exe (Windows):** spusťte dvojklikem `OKfetch - WinLinMac/build-setup.bat`. Skript stáhne závislosti, sestaví instalačku a uloží ji jako `Setup\OKfetch-Setup.exe` ve složce `Apps`. Když Node.js chybí, nabídne, že ho nainstaluje.
+**Sestavit vlastní Setup.exe (Windows):** ve složce `OKfetch - WinLinMac` spusťte `npm install` a pak `npm run dist:win`. Instalačku `OKfetch-Setup-<verze>.exe` najdete ve složce `dist`.
 
 **Spustit bez instalace:**
 

@@ -33,6 +33,14 @@ Tento dokument je pro vývojáře. V nápovědě aplikace se nezobrazuje.
   - počítač: `fs.createReadStream(start, end)` → 206
 - Schéma je `standard, secure, stream, corsEnabled` a odpovědi mají `Access-Control-Allow-Origin: *`. Díky tomu canvas z videa není „tainted“.
 
+## Zdroje
+
+- Zdroj = lokální složka nebo Google účet (`SourceConfig` v `settings.json`). Main proces drží pro každý zdroj `SourceSession` (`src/main/source.ts`): backend, cache, miniatury, seznam souborů a vlastní `okgram.json` s ukládáním, offline frontou a obnovou.
+- Id média v oknech je `<id zdroje>:<id ve zdroji>` (`src/shared/sources.ts`).
+- `aggregateData()` spojí data všech zdrojů do jedné knihovny: alba podle id (vlastnosti z nejnovějšího záznamu, soubory ze všech zdrojů), hvězdičky a rámečky s předponou zdroje, nejnovější profil a nastavení.
+- `routeOp()` rozdělí změnu z okna zpět na zdroje: hvězdičky a soubory alb jdou zdroji souboru, alba jako celek (název, přesun, pořadí, smazání) do všech zdrojů. Před změnou alba dostane každý zdroj chybějící záznamy alb (`album.ensure`), takže každý zdroj nese celý strom alb, ale jen své soubory.
+- Zaškrtnutí zdroje je jen filtr v okně; data skrytého zdroje se dál ukládají.
+
 ## Data (`okgram.json`)
 
 ```json

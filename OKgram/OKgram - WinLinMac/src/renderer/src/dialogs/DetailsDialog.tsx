@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import type { MediaItem, StorageMode, VideoInfo } from '../../../shared/ipc'
+import type { MediaItem, SourceState, VideoInfo } from '../../../shared/ipc'
+import { splitId } from '../../../shared/sources'
 import { FRAME_HEX, albumPath, metaOf, type LibraryData } from '../../../shared/model'
 import { Modal } from '../components/Modal'
 import { useApp } from '../context'
@@ -7,7 +8,8 @@ import { formatDate, formatDuration, formatSize } from '../i18n'
 import { probeVideo } from '../library/generator'
 
 /** Size, resolution, dates, format and albums of one file (also used by the viewer's side panel). */
-export function DetailsTable({ item, data, mode }: { item: MediaItem; data: LibraryData; mode: StorageMode }) {
+export function DetailsTable({ item, data, source }: { item: MediaItem; data: LibraryData; source: SourceState | undefined }) {
+  const mode = source?.kind ?? 'local'
   const { t, settings } = useApp()
   const [probe, setProbe] = useState<VideoInfo | null>(null)
   useEffect(() => {
@@ -31,7 +33,8 @@ export function DetailsTable({ item, data, mode }: { item: MediaItem; data: Libr
     [t('details.taken'), item.taken ? formatDate(item.taken, lang) : '–'],
     [t('details.modified'), formatDate(item.modified, lang)],
     [t(mode === 'drive' ? 'details.uploaded' : 'details.created'), formatDate(item.created, lang)],
-    [t('details.location'), mode === 'drive' ? t('details.drive_folder') : item.id],
+    [t('details.source'), source ? `${source.name} (${mode === 'drive' ? source.account?.email ?? '' : source.path ?? ''})` : '–'],
+    [t('details.location'), mode === 'drive' ? t('details.drive_folder') : splitId(item.id)[1]],
     [t('details.star'), meta.star ? t('common.yes') : t('common.no')],
     [
       t('details.frame'),
@@ -61,7 +64,7 @@ export function DetailsTable({ item, data, mode }: { item: MediaItem; data: Libr
   )
 }
 
-export function DetailsDialog({ item, data, mode, onClose }: { item: MediaItem; data: LibraryData; mode: StorageMode; onClose: () => void }) {
+export function DetailsDialog({ item, data, source, onClose }: { item: MediaItem; data: LibraryData; source: SourceState | undefined; onClose: () => void }) {
   const { t } = useApp()
   return (
     <Modal
@@ -74,7 +77,7 @@ export function DetailsDialog({ item, data, mode, onClose }: { item: MediaItem; 
         </button>
       }
     >
-      <DetailsTable item={item} data={data} mode={mode} />
+      <DetailsTable item={item} data={data} source={source} />
     </Modal>
   )
 }

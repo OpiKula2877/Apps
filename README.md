@@ -43,7 +43,7 @@ Prohlížeč fotek a videí pro Windows, Linux a macOS s alby, hvězdičkami, ba
 
 3. Vyberte si, co chcete udělat:
 
-**Sestavit vlastní Setup.exe (Windows).** Ve složce aplikace spusťte dvojklikem `build-setup.bat`, třeba `OKpass/OKpass - WinLinMac/build-setup.bat`. Skript stáhne závislosti, sestaví instalačku a uloží ji do složky `Setup` vedle tohoto README (např. `Setup\OKpass-Setup.exe`). Soubor [`build-setup.bat`](build-setup.bat) přímo ve složce `Apps` sestaví všechny aplikace najednou. Když Node.js chybí, skript nabídne, že ho nainstaluje.
+**Sestavit vlastní Setup.exe (Windows).** Ve složce aplikace (třeba `OKpass/OKpass - WinLinMac`) spusťte `npm install` a pak `npm run dist:win`. Instalačku najdete ve složce `dist`. Hotové instalačky jsou ke stažení v [Releases](https://github.com/OpiKula2877/Apps/releases/latest).
 
 **Spustit aplikaci bez instalace** (Windows, Linux, macOS):
 

@@ -81,6 +81,8 @@ export type DataOp =
   | { type: 'forget'; ids: string[] }
   /** A local file was renamed: its id (the path) changed. */
   | { type: 'rekey'; from: string; to: string }
+  /** Copy an album's record (without files) into a source that does not have it yet. */
+  | { type: 'album.ensure'; album: Omit<Album, 'items' | 'cover'> }
 
 const ROTATIONS = [0, 90, 180, 270] as const
 /** Tombstones older than this are dropped. */
@@ -177,6 +179,9 @@ export function applyOp(data: LibraryData, op: DataOp, now = Date.now()): Librar
       return { ...data, profile: { username: op.username.trim().slice(0, 64), modified: now } }
     case 'prefs':
       return { ...data, prefs: sanitizePrefs({ ...data.prefs, ...op.patch }), prefs_modified: now }
+    case 'album.ensure':
+      if (data.albums.some((a) => a.id === op.album.id)) return data
+      return { ...data, albums: [...data.albums, { ...op.album, items: [], cover: null }] }
     case 'album.create': {
       if (data.albums.some((a) => a.id === op.id)) return data
       const parent = op.parent && data.albums.some((a) => a.id === op.parent) ? op.parent : null

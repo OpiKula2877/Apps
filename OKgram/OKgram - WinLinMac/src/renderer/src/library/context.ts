@@ -1,6 +1,6 @@
 // The open library for the components of the library window.
 import { createContext, useContext } from 'react'
-import type { MediaItem, StorageMode } from '../../../shared/ipc'
+import type { MediaItem, SourceState } from '../../../shared/ipc'
 import type { Album, LibraryData } from '../../../shared/model'
 
 export interface AlbumPickOptions {
@@ -13,11 +13,12 @@ export interface AlbumPickOptions {
 }
 
 export interface LibraryServices {
-  mode: StorageMode
+  sources: SourceState[]
+  /** Media of the ticked sources. */
   media: MediaItem[]
   byId: Map<string, MediaItem>
   data: LibraryData
-  online: boolean
+  sourceOf(item: MediaItem): SourceState | undefined
   showDetails(item: MediaItem): void
   /** Chosen album id, null = top level, undefined = cancelled. */
   pickAlbum(options: AlbumPickOptions): Promise<string | null | undefined>
@@ -25,6 +26,10 @@ export interface LibraryServices {
   editAlbum(target: { album: Album } | { parent: string | null; items?: string[] }): Promise<string | null>
   /** Show this album in the Albums tab. */
   showAlbum(id: string): void
+  /** Upload files (no paths: pick them); asks which source when several are ticked. */
+  upload(paths?: string[], albumId?: string | null): Promise<void>
+  /** Open the add-source dialog. */
+  addSource(): void
 }
 
 export const LibraryContext = createContext<LibraryServices | null>(null)

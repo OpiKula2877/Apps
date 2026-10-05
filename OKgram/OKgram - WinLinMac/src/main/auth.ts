@@ -1,12 +1,13 @@
 // Google OAuth for a desktop app: system browser, loopback redirect and PKCE.
-// The refresh token is encrypted with the system key store (Windows DPAPI, macOS Keychain,
-// Linux Secret Service) through Electron's safeStorage, when the system offers it.
+// Every Google source (account) has its own refresh token, encrypted with the system key store
+// (Windows DPAPI, macOS Keychain, Linux Secret Service) through Electron's safeStorage when the
+// system offers it.
 import { randomBytes } from 'node:crypto'
 import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { dirname, join } from 'node:path'
-import { safeStorage } from 'electron'
+import { app, safeStorage } from 'electron'
 import { CodeChallengeMethod, OAuth2Client, type Credentials } from 'google-auth-library'
 import { AuthError } from '../core/backend'
 import type { TokenProvider } from '../core/driveRest'
@@ -19,8 +20,12 @@ export const SCOPES = ['https://www.googleapis.com/auth/drive.file']
 const LOGIN_TIMEOUT_MS = 300_000
 const TOKEN_URI = 'https://oauth2.googleapis.com/token'
 
-const plainTokenPath = (): string => join(configDir(), 'token.json')
-const secureTokenPath = (): string => join(configDir(), 'token.bin')
+// tokens/<source id>.bin (or .json without a key store). token.bin / token.json in the settings
+// folder is the single token from before sources existed.
+const tokenDir = (): string => join(configDir(), 'tokens')
+const plainTokenPath = (source: string): string => join(tokenDir(), `${source}.json`)
+const secureTokenPath = (source: string): string => join(tokenDir(), `${source}.bin`)
+const legacyPaths = (): [string, string] => [join(configDir(), 'token.bin'), join(configDir(), 'token.json')]
 
 export class ClientSecretError extends Error {
   constructor(readonly code: 'invalid' | 'wrong_type') {
@@ -29,7 +34,20 @@ export class ClientSecretError extends Error {
   }
 }
 
-export const hasClientSecret = (): boolean => existsSync(clientSecretPath())
+/** OAuth client shipped with the app (resources/client_secret.json), used when the user has not chosen their own. */
+function bundledSecretPath(): string {
+  return app.isPackaged
+    ? join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'client_secret.json')
+    : join(app.getAppPath(), 'resources', 'client_secret.json')
+}
+
+/** The user's own client file wins over the bundled one. */
+function activeSecretPath(): string | null {
+  if (existsSync(clientSecretPath())) return clientSecretPath()
+  return existsSync(bundledSecretPath()) ? bundledSecretPath() : null
+}
+
+export const hasClientSecret = (): boolean => activeSecretPath() !== null
 
 export function importClientSecret(source: string): void {
   let data: unknown
@@ -45,7 +63,9 @@ export function importClientSecret(source: string): void {
 }
 
 function readClient(): { clientId: string; clientSecret: string } {
-  const data = JSON.parse(readFileSync(clientSecretPath(), 'utf8'))
+  const path = activeSecretPath()
+  if (!path) throw new ClientSecretError('invalid')
+  const data = JSON.parse(readFileSync(path, 'utf8'))
   const installed = data.installed ?? {}
   if (!installed.client_id) throw new ClientSecretError('invalid')
   return { clientId: installed.client_id, clientSecret: installed.client_secret ?? '' }
@@ -59,38 +79,52 @@ const secure = (): boolean => {
   }
 }
 
-function writeToken(json: Record<string, unknown>): void {
-  mkdirSync(configDir(), { recursive: true })
+function writeToken(source: string, json: Record<string, unknown>): void {
+  mkdirSync(tokenDir(), { recursive: true })
   const text = JSON.stringify(json)
   if (secure()) {
-    writeFileSync(secureTokenPath(), safeStorage.encryptString(text))
-    rmSync(plainTokenPath(), { force: true })
+    writeFileSync(secureTokenPath(source), safeStorage.encryptString(text))
+    rmSync(plainTokenPath(source), { force: true })
   } else {
-    writeFileSync(plainTokenPath(), text, 'utf8')
-    if (process.platform !== 'win32') chmodSync(plainTokenPath(), 0o600)
+    writeFileSync(plainTokenPath(source), text, 'utf8')
+    if (process.platform !== 'win32') chmodSync(plainTokenPath(source), 0o600)
   }
 }
 
-function readToken(): Record<string, unknown> | null {
+function readFrom(secureFile: string, plainFile: string): Record<string, unknown> | null {
   try {
-    if (existsSync(secureTokenPath())) return JSON.parse(safeStorage.decryptString(readFileSync(secureTokenPath())))
-    if (existsSync(plainTokenPath())) return JSON.parse(readFileSync(plainTokenPath(), 'utf8'))
+    if (existsSync(secureFile)) return JSON.parse(safeStorage.decryptString(readFileSync(secureFile)))
+    if (existsSync(plainFile)) return JSON.parse(readFileSync(plainFile, 'utf8'))
   } catch {
     // unreadable (e.g. another user account): sign in again
   }
   return null
 }
 
-function removeToken(): void {
-  rmSync(secureTokenPath(), { force: true })
-  rmSync(plainTokenPath(), { force: true })
+function readToken(source: string, adoptLegacy: boolean): Record<string, unknown> | null {
+  const own = readFrom(secureTokenPath(source), plainTokenPath(source))
+  if (own || !adoptLegacy) return own
+  // The sign-in from before sources existed belongs to the migrated Google source.
+  const [legacySecure, legacyPlain] = legacyPaths()
+  const legacy = readFrom(legacySecure, legacyPlain)
+  if (legacy) {
+    writeToken(source, legacy)
+    rmSync(legacySecure, { force: true })
+    rmSync(legacyPlain, { force: true })
+  }
+  return legacy
 }
 
-function saveToken(client: OAuth2Client, update: Credentials = {}): void {
+function removeToken(source: string): void {
+  rmSync(secureTokenPath(source), { force: true })
+  rmSync(plainTokenPath(source), { force: true })
+}
+
+function saveToken(source: string, client: OAuth2Client, update: Credentials = {}): void {
   const credentials = { ...client.credentials, ...update }
   if (!credentials.refresh_token) return
   const { clientId } = readClient()
-  writeToken({
+  writeToken(source, {
     token: credentials.access_token ?? null,
     refresh_token: credentials.refresh_token,
     token_uri: TOKEN_URI,
@@ -100,19 +134,19 @@ function saveToken(client: OAuth2Client, update: Credentials = {}): void {
   })
 }
 
-function makeClient(redirectUri?: string): OAuth2Client {
+function makeClient(source: string, redirectUri?: string): OAuth2Client {
   const { clientId, clientSecret } = readClient()
   const client = new OAuth2Client({ clientId, clientSecret, redirectUri })
-  client.on('tokens', (tokens) => saveToken(client, tokens))
+  client.on('tokens', (tokens) => saveToken(source, client, tokens))
   return client
 }
 
-/** Stored credentials, refreshed when possible. Offline, they are returned unrefreshed. */
-export async function loadCredentials(): Promise<OAuth2Client | null> {
+/** Stored credentials of one source, refreshed when possible. Offline, they are returned unrefreshed. */
+export async function loadCredentials(source: string, adoptLegacy: boolean): Promise<OAuth2Client | null> {
   if (!hasClientSecret()) return null
-  const stored = readToken()
+  const stored = readToken(source, adoptLegacy)
   if (!stored || typeof stored.refresh_token !== 'string') return null
-  const client = makeClient()
+  const client = makeClient(source)
   const expiry = typeof stored.expiry === 'string' ? Date.parse(stored.expiry.endsWith('Z') ? stored.expiry : `${stored.expiry}Z`) : NaN
   client.setCredentials({
     access_token: typeof stored.token === 'string' ? stored.token : undefined,
@@ -123,7 +157,7 @@ export async function loadCredentials(): Promise<OAuth2Client | null> {
     await client.getAccessToken()
   } catch (error) {
     if (classifyError(error) instanceof AuthError) {
-      removeToken()
+      removeToken(source)
       return null
     }
   }
@@ -134,17 +168,18 @@ const page = (text: string): string =>
   `<!doctype html><meta charset="utf-8"><title>OKgram</title><body style="font-family:monospace;background:#0E0A0A;color:#F2E6E6;display:grid;place-items:center;height:100vh;margin:0"><p>${text.replace(/</g, '&lt;')}</p></body>`
 
 /** Open the browser for Google sign-in and wait for the result. */
-export async function loginInteractive(open: (url: string) => Promise<void>, successText: string): Promise<OAuth2Client> {
+export async function loginInteractive(source: string, open: (url: string) => Promise<void>, successText: string): Promise<OAuth2Client> {
   const server = createServer()
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
   const redirectUri = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
   try {
-    const client = makeClient(redirectUri)
+    const client = makeClient(source, redirectUri)
     const { codeVerifier, codeChallenge } = await client.generateCodeVerifierAsync()
     const state = randomBytes(16).toString('hex')
     const url = client.generateAuthUrl({
       access_type: 'offline',
-      prompt: 'consent',
+      // Always offer the account chooser, so another Google account can be connected.
+      prompt: 'select_account consent',
       scope: SCOPES,
       state,
       code_challenge_method: CodeChallengeMethod.S256,
@@ -168,7 +203,7 @@ export async function loginInteractive(open: (url: string) => Promise<void>, suc
     })
     const { tokens } = await client.getToken({ code, codeVerifier })
     client.setCredentials(tokens)
-    saveToken(client)
+    saveToken(source, client)
     return client
   } finally {
     server.close()
@@ -176,7 +211,7 @@ export async function loginInteractive(open: (url: string) => Promise<void>, suc
 }
 
 /** Revoke the token at Google (best effort) and forget it locally. */
-export async function logout(client: OAuth2Client | null): Promise<void> {
+export async function logout(source: string, client: OAuth2Client | null): Promise<void> {
   const token = client?.credentials.refresh_token ?? client?.credentials.access_token
   if (token) {
     try {
@@ -185,7 +220,7 @@ export async function logout(client: OAuth2Client | null): Promise<void> {
       // offline: the local token is removed anyway
     }
   }
-  removeToken()
+  removeToken(source)
 }
 
 interface NodeTokens extends TokenProvider {
@@ -206,7 +241,7 @@ function tokenProvider(client: OAuth2Client): NodeTokens {
   }
 }
 
-/** Desktop sign-in: the user's OAuth client file and the system browser. */
+/** Desktop sign-in: the OAuth client file and the system browser. */
 export function createAuth(open: (url: string) => Promise<void>, pickJson: () => Promise<string | null>): AuthAdapter {
   return {
     hasClientSecret: async () => hasClientSecret(),
@@ -220,11 +255,11 @@ export function createAuth(open: (url: string) => Promise<void>, pickJson: () =>
       }
       return 'ok'
     },
-    async load() {
-      const client = await loadCredentials()
+    async load(source, adoptLegacy) {
+      const client = await loadCredentials(source, adoptLegacy)
       return client ? tokenProvider(client) : null
     },
-    login: async (successText) => tokenProvider(await loginInteractive(open, successText)),
-    logout: (tokens) => logout((tokens as NodeTokens | null)?.client ?? null)
+    login: async (source, successText) => tokenProvider(await loginInteractive(source, open, successText)),
+    logout: (source, tokens) => logout(source, (tokens as NodeTokens | null)?.client ?? null)
   }
 }

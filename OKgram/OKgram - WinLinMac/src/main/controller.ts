@@ -1,14 +1,17 @@
-// Application state in the main process: storage choice, sign-in, the open library (media list
-// and data file), saving with offline retry, background refresh, uploads, downloads and settings.
+// Application state in the main process: the sources (local folders, Google Drive accounts)
+// joined into one library, changes routed back to each source, uploads, downloads and settings.
 // Both windows (library and viewer) show what this controller broadcasts.
 import { createWriteStream, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { open as openFile, readdir, rm, stat } from 'node:fs/promises'
-import { basename, dirname, join } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { once } from 'node:events'
 import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
+import { randomBytes } from 'node:crypto'
 import { Zip, ZipPassThrough } from 'fflate'
 import type {
+  AddSourceResult,
+  ClientSecretResult,
   ImportResult,
   LibraryState,
   MediaItem,
@@ -18,35 +21,28 @@ import type {
   RenameResult,
   Screen,
   Settings,
-  StorageMode,
+  SourceConfig,
+  SourceDraft,
+  SourceState,
   SyncState,
   VideoInfo
 } from '../shared/ipc'
 import { kindOf, mimeOf, validFileName } from '../shared/formats'
 import { uniqueName } from '../shared/library'
-import { applyOp, emptyData, mergeData, sanitizeData, serializeData, type DataOp, type LibraryData } from '../shared/model'
+import { emptyData, type DataOp, type LibraryData } from '../shared/model'
 import { PREF_KEYS, isRecord, pickPrefs, sanitizePrefs } from '../shared/prefs'
+import { aggregateData, joinId, routeOp, splitId } from '../shared/sources'
 import { resolveFlags } from '../shared/theme'
-import { AuthError, BackendError, OfflineError, type Account, type MediaBackend, type UploadSource } from '../core/backend'
-import type { TokenProvider } from '../core/driveRest'
+import { BackendError, type Account, type UploadSource } from '../core/backend'
 import { errorText, isAbort } from '../core/errors'
-import { sanitizeSettings } from '../core/settings'
-import { LibraryCache, type VideoInfoMap } from './cache'
+import { sanitizeSettings, sanitizeSource } from '../core/settings'
 import type { Hooks } from './hooks'
-import { ThumbService, type Thumb } from './thumbs'
+import { SourceSession, type SourceEnv } from './source'
+import type { Thumb } from './thumbs'
 import { Transfers, type TransferHandle } from './transfers'
 
-const SAVE_DELAY_MS = 1000
-const RETRY_MS = 60_000
-const WATCH_DELAY_MS = 1500
 const MAX_DROP_FILES = 5000
-
-class NoDataError extends Error {
-  name = 'NoDataError'
-}
-
-const encode = (text: string): Uint8Array => new TextEncoder().encode(text)
-const decode = (bytes: Uint8Array): string => new TextDecoder().decode(bytes)
+const BROADCAST_MS = 60
 
 function prefsOf(settings: Settings): Prefs {
   return sanitizePrefs(settings)
@@ -55,6 +51,9 @@ function prefsOf(settings: Settings): Prefs {
 function samePrefs(a: Prefs, b: Prefs): boolean {
   return PREF_KEYS.every((key) => JSON.stringify(a[key]) === JSON.stringify(b[key]))
 }
+
+const newSourceId = (kind: 'local' | 'drive'): string => `${kind}${randomBytes(5).toString('hex')}`
+const samePath = (a: string, b: string): boolean => (process.platform === 'linux' ? resolve(a) === resolve(b) : resolve(a).toLowerCase() === resolve(b).toLowerCase())
 
 function fileSource(path: string, name: string, size: number, modified: number): UploadSource {
   return {
@@ -113,33 +112,25 @@ export class Controller {
   settings: Settings
   readonly transfers: Transfers
   private screen: Screen = { name: 'loading' }
-  private mode: StorageMode | null = null
-  private tokens: TokenProvider | null = null
-  private backend: MediaBackend | null = null
-  private cache: LibraryCache | null = null
-  private thumbs: ThumbService | null = null
-  private media: MediaItem[] = []
-  private online = false
-  private loading = false
-  private data: LibraryData = emptyData()
-  private base: string | null = null
-  private dirty = false
-  private pending = false
-  private status: SyncState = 'saved'
-  private videoInfo: VideoInfoMap = {}
-  private session = 0
-  private queue: Promise<unknown> = Promise.resolve()
+  private readonly sessions = new Map<string, SourceSession>()
+  private merged: LibraryData
   private work: Promise<unknown> = Promise.resolve()
-  private saveTimer: ReturnType<typeof setTimeout> | null = null
-  private retryTimer: ReturnType<typeof setInterval> | null = null
-  private syncTimer: ReturnType<typeof setInterval> | null = null
-  private watchTimer: ReturnType<typeof setTimeout> | null = null
-  private mediaTimer: ReturnType<typeof setTimeout> | null = null
-  private stopWatch: (() => void) | null = null
+  private libraryTimer: ReturnType<typeof setTimeout> | null = null
+  private stateTimer: ReturnType<typeof setTimeout> | null = null
+  private readonly env: SourceEnv
 
   constructor(private readonly hooks: Hooks) {
     this.settings = sanitizeSettings(hooks.loadSettings())
     this.transfers = new Transfers((list) => hooks.ui.transfers(list))
+    this.merged = emptyData(prefsOf(this.settings))
+    this.env = {
+      hooks,
+      prefs: () => prefsOf(this.settings),
+      syncMinutes: () => this.settings.sync_minutes,
+      changed: (_source, what) => this.sourceChanged(what),
+      account: (source, account) => this.rememberAccount(source, account),
+      message: (message) => hooks.ui.message(message)
+    }
   }
 
   // --- state for the windows ---------------------------------------------
@@ -148,67 +139,30 @@ export class Controller {
   }
 
   getLibrary(): LibraryState {
-    return { media: this.withVideoInfo(this.media), online: this.online, loading: this.loading }
+    const sessions = [...this.sessions.values()]
+    return { media: sessions.flatMap((s) => s.items()), loading: sessions.some((s) => s.loading) }
   }
 
   getData(): LibraryData {
-    return this.data
+    return this.merged
   }
 
   getStatus(): SyncState {
-    return this.status
+    const states = [...this.sessions.values()].map((s) => s.sync)
+    for (const state of ['error', 'pending', 'saving'] as const) if (states.includes(state)) return state
+    return 'saved'
   }
 
   getSettings(): Settings {
     return this.settings
   }
 
-  item(id: string): MediaItem | undefined {
-    return this.media.find((m) => m.id === id)
-  }
-
-  private setScreen(screen: Screen): void {
-    this.screen = screen
-    this.hooks.ui.screen(screen)
+  getSources(): SourceState[] {
+    return this.settings.sources.map((config) => this.sessions.get(config.id)?.state() ?? { ...config, status: 'connecting', sync: 'saved', loading: false, count: 0, message: null })
   }
 
   private message(key: string, params?: Message['params'], error = false): void {
     this.hooks.ui.message({ key, params, error })
-  }
-
-  private setStatus(status: SyncState): void {
-    this.status = status
-    this.hooks.ui.status(status)
-  }
-
-  private setOnline(online: boolean): void {
-    if (this.online === online) return
-    this.online = online
-    if (online) this.thumbs?.resetFailures()
-    this.hooks.ui.library(this.getLibrary())
-  }
-
-  private withVideoInfo(items: MediaItem[]): MediaItem[] {
-    return items.map((item) => {
-      const info = item.kind === 'video' ? this.videoInfo[item.id] : undefined
-      if (!info || info.version !== item.version) return item
-      return { ...item, width: item.width ?? info.width, height: item.height ?? info.height, duration: item.duration ?? info.duration }
-    })
-  }
-
-  /** The media list changed: tell the windows and keep the offline copy (batched). */
-  private mediaChanged(): void {
-    if (this.mediaTimer) clearTimeout(this.mediaTimer)
-    this.mediaTimer = setTimeout(() => {
-      this.mediaTimer = null
-      this.hooks.ui.library(this.getLibrary())
-      try {
-        this.cache?.writeList(this.media)
-        this.cache?.writeVideoInfo(this.videoInfo)
-      } catch (error) {
-        this.hooks.log(`[cache] ${errorText(error)}`)
-      }
-    }, 120)
   }
 
   private saveSettingsFile(): void {
@@ -219,441 +173,293 @@ export class Controller {
     }
   }
 
-  /** Run storage work strictly one after another. */
-  private serial<T>(work: () => Promise<T>): Promise<T> {
-    const run = this.queue.then(work, work)
-    this.queue = run.catch(() => undefined)
-    return run
+  private loadedSessions(): SourceSession[] {
+    return [...this.sessions.values()].filter((s) => s.loaded)
   }
 
-  /** Uploads, downloads and ZIP exports run one after another, apart from the data queue. */
-  private background(work: () => Promise<void>): void {
-    this.work = this.work.then(work, work).catch((error) => this.hooks.log(`[transfer] ${errorText(error)}`))
-  }
-
-  idle(): Promise<unknown> {
-    return this.queue
-  }
-
-  // --- start, storage choice & sign-in ------------------------------------
-  async start(): Promise<void> {
-    const { storage, local_folder } = this.settings
-    if (storage === 'local' && local_folder) return this.openLocal(local_folder)
-    if (storage === 'drive') return this.beginDrive()
-    return this.welcome(null)
-  }
-
-  private async welcome(mode: StorageMode | null, message: Message | null = null, connectError = false, busy = false): Promise<void> {
-    this.mode = mode
-    const needSecret = mode === 'drive' && !(await this.hooks.auth.hasClientSecret())
-    this.setScreen({ name: 'welcome', mode, needSecret, busy, connectError, message, defaultFolder: this.hooks.defaultFolder })
-  }
-
-  async chooseMode(mode: StorageMode | null): Promise<void> {
-    if (mode === 'drive') return this.beginDrive()
-    return this.welcome(mode)
-  }
-
-  private async beginDrive(): Promise<void> {
-    if (!(await this.hooks.auth.hasClientSecret())) return this.welcome('drive')
-    await this.welcome('drive', { key: 'login.checking' }, false, true)
-    try {
-      this.tokens = await this.hooks.auth.load()
-    } catch {
-      this.tokens = null
-    }
-    if (!this.tokens) return this.welcome('drive')
-    return this.openLibrary('drive', this.hooks.makeDrive(this.tokens))
-  }
-
-  async chooseClientSecret(): Promise<void> {
-    const result = await this.hooks.auth.chooseClientSecret()
-    if (result === 'cancel') return
-    if (result !== 'ok') return this.welcome('drive', { key: `login.secret_${result}`, error: true })
-    return this.welcome('drive', { key: 'login.secret_ok' })
-  }
-
-  async signIn(successText: string): Promise<void> {
-    await this.welcome('drive', { key: 'login.waiting_browser' }, false, true)
-    try {
-      this.tokens = await this.hooks.auth.login(successText)
-    } catch (error) {
-      this.hooks.log(`[login] ${errorText(error)}`)
-      return this.welcome('drive', { key: 'login.failed', error: true })
-    }
-    return this.openLibrary('drive', this.hooks.makeDrive(this.tokens))
-  }
-
-  async retry(): Promise<void> {
-    if (this.mode === 'local') return this.openLocal(this.settings.local_folder)
-    if (this.tokens) return this.openLibrary('drive', this.hooks.makeDrive(this.tokens))
-    return this.beginDrive()
-  }
-
-  /** folder: a path, null = the default folder, true = let the user pick one. */
-  async openLocal(folder: string | null | true): Promise<void> {
-    const path = folder === true ? await this.hooks.pickFolder('OKgram', this.settings.local_folder ?? this.hooks.defaultFolder) : (folder ?? this.hooks.defaultFolder)
-    if (!path) return
-    return this.openLibrary('local', this.hooks.makeLocal(path))
-  }
-
-  private parse(bytes: Uint8Array): LibraryData {
-    return sanitizeData(JSON.parse(decode(bytes)), prefsOf(this.settings))
-  }
-
-  /** A damaged data file is kept next to the cache and the library starts from scratch. */
-  private parseOrRescue(bytes: Uint8Array, cache: LibraryCache): LibraryData | null {
-    try {
-      return this.parse(bytes)
-    } catch (error) {
-      this.hooks.log(`[data] damaged okgram.json: ${errorText(error)}`)
-      try {
-        mkdirSync(cache.folder, { recursive: true })
-        writeFileSync(join(cache.folder, `okgram-damaged-${Date.now()}.json`), bytes)
-      } catch {
-        // nothing more to save
-      }
-      this.message('data.damaged', undefined, true)
-      return null
-    }
-  }
-
-  private async openLibrary(mode: StorageMode, backend: MediaBackend): Promise<void> {
-    this.closeLibrary()
-    const session = this.session
-    await this.welcome(mode, { key: mode === 'drive' ? 'login.connecting' : 'login.opening' }, false, true)
-    try {
-      let account: Account
-      let online = true
-      try {
-        account = await backend.account()
-      } catch (error) {
-        if (!(error instanceof OfflineError) || mode !== 'drive') throw error
-        const last = this.settings.last_account
-        if (!last.id) throw new NoDataError('offline without a known account')
-        account = { id: last.id, email: last.email ?? '', displayName: last.name ?? '' }
-        online = false
-      }
-      const cache = new LibraryCache(this.hooks.cacheRoot, `${mode}:${account.id}`)
-      const cached = cache.readData()
-      let data = cached ? this.parseOrRescue(cached.data, cache) : null
-      let base = cached?.base ?? null
-      let pending = Boolean(cached?.pending && data)
-      let media = cache.readList()
-      if (online) {
-        try {
-          const remote = await backend.readData()
-          if (remote) {
-            const remoteData = this.parseOrRescue(remote.data, cache)
-            if (remoteData) {
-              data = data && pending ? mergeData(data, remoteData) : remoteData
-              base = remote.revision
-            } else {
-              pending = true
-            }
-          } else {
-            pending = true
-          }
-          media = await backend.listMedia()
-        } catch (error) {
-          if (!(error instanceof OfflineError)) throw error
-          online = false
-        }
-      }
-      if (!data) {
-        if (!online && mode === 'drive') throw new NoDataError('no data offline')
-        data = { ...emptyData(prefsOf(this.settings)), prefs_modified: Date.now() }
-        pending = true
-      }
-      if (session !== this.session) return
-      this.mode = mode
-      this.backend = backend
-      this.cache = cache
-      this.thumbs = new ThumbService(cache.thumbs, backend, this.hooks.resizeImage)
-      this.videoInfo = cache.readVideoInfo()
-      this.media = media ?? []
-      this.online = online
-      this.data = data
-      this.base = base
-      this.pending = pending
-      this.dirty = pending
-      this.status = pending ? (online ? 'saving' : 'pending') : 'saved'
-      this.settings = {
-        ...this.settings,
-        storage: mode,
-        local_folder: mode === 'local' ? account.id : this.settings.local_folder,
-        last_account: mode === 'drive' ? { id: account.id, email: account.email, name: account.displayName } : this.settings.last_account
-      }
+  /** A source reported a change: rebuild the joined data and tell the windows (batched). */
+  private sourceChanged(what: 'media' | 'data' | 'state'): void {
+    if (what === 'data') {
+      this.merged = aggregateData(
+        this.loadedSessions().map((s) => ({ source: s.id, data: s.data })),
+        prefsOf(this.settings)
+      )
       this.adoptPrefs()
-      this.saveSettingsFile()
-      if (online) cache.writeList(this.media)
-      this.setScreen({ name: 'library', mode, account: { email: account.email, name: account.displayName }, session })
-      this.hooks.ui.library(this.getLibrary())
-      this.hooks.ui.data(this.data)
-      this.hooks.ui.status(this.status)
-      this.hooks.ui.settings(this.settings)
-      if (pending) {
-        if (online) this.scheduleSave(0)
-        else this.startRetry()
-      }
-      this.startSync()
-      this.startWatch()
-    } catch (error) {
-      if (session !== this.session) return
-      this.backend = null
-      if (error instanceof AuthError) {
-        await this.hooks.auth.logout(null).catch(() => undefined)
-        this.tokens = null
-        return this.welcome('drive', { key: 'login.expired', error: true })
-      }
-      if (error instanceof NoDataError) return this.welcome(mode, { key: 'login.offline_no_data', error: true }, true)
-      if (error instanceof BackendError && error.message === 'not_writable') {
-        const path = (backend as { root?: string }).root ?? this.settings.local_folder ?? ''
-        return this.welcome('local', { key: 'local.not_writable', params: { path }, error: true }, true)
-      }
-      this.hooks.log(`[open ${mode}] ${errorText(error)}`)
-      return this.welcome(mode, { key: 'login.connect_failed', params: { error: errorText(error) }, error: true }, true)
+      this.hooks.ui.data(this.merged)
+      return
     }
+    if (what === 'media') {
+      this.libraryTimer ??= setTimeout(() => {
+        this.libraryTimer = null
+        this.hooks.ui.library(this.getLibrary())
+      }, BROADCAST_MS)
+      return
+    }
+    this.stateTimer ??= setTimeout(() => {
+      this.stateTimer = null
+      this.hooks.ui.sources(this.getSources())
+      this.hooks.ui.status(this.getStatus())
+      this.hooks.ui.library(this.getLibrary())
+    }, BROADCAST_MS)
   }
 
   /** Take the preferences stored with the library (another computer may have changed them). */
   private adoptPrefs(): void {
-    if (!this.data.prefs_modified) {
-      this.data = { ...this.data, prefs: prefsOf(this.settings) }
-      return
-    }
-    if (samePrefs(this.data.prefs, prefsOf(this.settings))) return
+    if (!this.merged.prefs_modified || samePrefs(this.merged.prefs, prefsOf(this.settings))) return
     const before = resolveFlags(this.settings).native_titlebar
-    this.settings = { ...this.settings, ...this.data.prefs }
+    this.settings = { ...this.settings, ...this.merged.prefs }
     this.saveSettingsFile()
     this.hooks.ui.settings(this.settings)
     const after = resolveFlags(this.settings).native_titlebar
     if (before !== after) this.hooks.nativeFrameChanged?.(after)
   }
 
-  private closeLibrary(): void {
-    this.session++
-    for (const timer of [this.saveTimer, this.watchTimer, this.mediaTimer]) if (timer) clearTimeout(timer)
-    this.saveTimer = this.watchTimer = this.mediaTimer = null
-    this.stopRetry()
-    if (this.syncTimer) clearInterval(this.syncTimer)
-    this.syncTimer = null
-    this.stopWatch?.()
-    this.stopWatch = null
-    this.backend = null
-    this.cache = null
-    this.thumbs = null
-    this.media = []
-    this.videoInfo = {}
-    this.data = emptyData(prefsOf(this.settings))
-    this.base = null
-    this.dirty = false
-    this.pending = false
-    this.status = 'saved'
+  private rememberAccount(source: string, account: Account): void {
+    const config = this.settings.sources.find((s) => s.id === source)
+    if (!config || (config.account?.id === account.id && config.account.email === account.email && config.account.name === account.displayName)) return
+    this.setConfig({ ...config, account: { id: account.id, email: account.email, name: account.displayName } })
   }
 
-  // --- saving & refreshing ------------------------------------------------
-  private scheduleSave(delay = SAVE_DELAY_MS): void {
-    if (this.saveTimer) clearTimeout(this.saveTimer)
-    this.saveTimer = setTimeout(() => {
-      this.saveTimer = null
-      void this.save()
-    }, delay)
+  private setConfig(config: SourceConfig): void {
+    this.settings = { ...this.settings, sources: this.settings.sources.map((s) => (s.id === config.id ? config : s)) }
+    const session = this.sessions.get(config.id)
+    if (session) session.config = config
+    this.saveSettingsFile()
+    this.hooks.ui.settings(this.settings)
+    this.hooks.ui.sources(this.getSources())
   }
 
-  private startRetry(): void {
-    this.retryTimer ??= setInterval(() => {
-      if (!this.pending) return this.stopRetry()
-      this.dirty = true
-      void this.save()
-    }, RETRY_MS)
+  /** Uploads, downloads and ZIP exports run one after another. */
+  private background(work: () => Promise<void>): void {
+    this.work = this.work.then(work, work).catch((error) => this.hooks.log(`[transfer] ${errorText(error)}`))
   }
 
-  private stopRetry(): void {
-    if (this.retryTimer) clearInterval(this.retryTimer)
-    this.retryTimer = null
+  /** The source and the file for a joined id. */
+  private locate(id: string): { session: SourceSession; raw: string; item: MediaItem } | null {
+    const [source, raw] = splitId(id)
+    const session = this.sessions.get(source)
+    const item = session?.rawItem(raw)
+    return session && item ? { session, raw, item: session.wrap(item) } : null
   }
 
-  private startSync(): void {
-    if (this.syncTimer) clearInterval(this.syncTimer)
-    this.syncTimer = null
-    const minutes = this.settings.sync_minutes
-    if (minutes > 0 && this.backend) this.syncTimer = setInterval(() => void this.refresh(true), minutes * 60_000)
+  item(id: string): MediaItem | undefined {
+    return this.locate(id)?.item
   }
 
-  private startWatch(): void {
-    this.stopWatch?.()
-    this.stopWatch =
-      this.backend?.watch?.(() => {
-        if (this.watchTimer) clearTimeout(this.watchTimer)
-        this.watchTimer = setTimeout(() => void this.refresh(true), WATCH_DELAY_MS)
-      }) ?? null
+  // --- start --------------------------------------------------------------
+  async start(): Promise<void> {
+    this.saveSettingsFile()
+    for (const config of this.settings.sources) this.sessions.set(config.id, new SourceSession(config, this.env))
+    this.screen = { name: 'library', session: 1 }
+    this.hooks.ui.screen(this.screen)
+    this.hooks.ui.sources(this.getSources())
+    await Promise.all([...this.sessions.values()].map((s) => s.open()))
   }
 
-  /** Upload the data file now (joining it with a newer copy from another computer first). */
-  save(): Promise<void> {
-    return this.serial(async () => {
-      const backend = this.backend
-      const cache = this.cache
-      if (!backend || !cache || !this.dirty) return
-      const session = this.session
-      this.dirty = false
-      this.setStatus('saving')
-      let bytes = encode(serializeData(this.data))
-      try {
-        const remote = await backend.dataRevision()
-        if (remote !== null && remote !== this.base) {
-          const fresh = await backend.readData()
-          const freshData = fresh ? this.parseOrRescue(fresh.data, cache) : null
-          if (freshData && session === this.session) {
-            this.data = mergeData(this.data, freshData)
-            this.adoptPrefs()
-            this.hooks.ui.data(this.data)
-            bytes = encode(serializeData(this.data))
-          }
-        }
-        const revision = await backend.writeData(bytes)
-        if (session !== this.session) return
-        this.base = revision
-        this.pending = false
-        cache.writeData(bytes, revision, false)
-        this.stopRetry()
-        this.setOnline(true)
-        if (!this.dirty) this.setStatus('saved')
-      } catch (error) {
-        if (session !== this.session) return
-        this.pending = true
-        try {
-          cache.writeData(bytes, this.base, true)
-        } catch {
-          // disk full: keep the changes in memory
-        }
-        this.startRetry()
-        if (error instanceof OfflineError) {
-          this.setOnline(false)
-          this.setStatus('pending')
-        } else {
-          this.hooks.log(`[save] ${errorText(error)}`)
-          this.setStatus(error instanceof AuthError ? 'pending' : 'error')
-          this.message(error instanceof AuthError ? 'status.auth_detail' : 'status.error_detail', { error: errorText(error) }, true)
-        }
+  // --- sources ------------------------------------------------------------
+  defaultFolder(): string {
+    return this.hooks.defaultFolder
+  }
+
+  pickFolder(defaultPath?: string | null): Promise<string | null> {
+    return this.hooks.pickFolder('OKgram', defaultPath ?? this.hooks.defaultFolder)
+  }
+
+  hasClientSecret(): Promise<boolean> {
+    return this.hooks.auth.hasClientSecret()
+  }
+
+  chooseClientSecret(): Promise<ClientSecretResult> {
+    return this.hooks.auth.chooseClientSecret()
+  }
+
+  private addSession(config: SourceConfig, session: SourceSession): void {
+    this.settings = { ...this.settings, sources: [...this.settings.sources, config] }
+    this.sessions.set(config.id, session)
+    this.saveSettingsFile()
+    this.hooks.ui.settings(this.settings)
+    this.hooks.ui.sources(this.getSources())
+  }
+
+  private folderTaken(path: string, except?: string): boolean {
+    return this.settings.sources.some((s) => s.kind === 'local' && s.id !== except && s.path !== null && samePath(s.path, path))
+  }
+
+  async addLocalSource(draft: SourceDraft): Promise<AddSourceResult> {
+    const path = draft.path?.trim()
+    if (!path) return { ok: false, error: { key: 'source.no_folder', error: true } }
+    if (this.folderTaken(path)) return { ok: false, error: { key: 'source.duplicate_folder', error: true } }
+    const config = sanitizeSource({ ...draft, id: newSourceId('local'), kind: 'local', path, enabled: true })
+    if (!config) return { ok: false, error: { key: 'source.no_folder', error: true } }
+    const session = new SourceSession(config, this.env)
+    await session.open()
+    if (session.status === 'error') {
+      session.close()
+      return { ok: false, error: session.message }
+    }
+    this.addSession(config, session)
+    this.sourceChanged('data')
+    this.sourceChanged('media')
+    return { ok: true, id: config.id }
+  }
+
+  async addDriveSource(draft: SourceDraft, successText: string): Promise<AddSourceResult> {
+    if (!(await this.hooks.auth.hasClientSecret())) return { ok: false, error: { key: 'login.need_secret', error: true } }
+    const id = newSourceId('drive')
+    let tokens
+    try {
+      tokens = await this.hooks.auth.login(id, successText)
+    } catch (error) {
+      this.hooks.log(`[login] ${errorText(error)}`)
+      return { ok: false, error: { key: 'login.failed', error: true } }
+    }
+    let account: Account
+    try {
+      account = await this.hooks.makeDrive(tokens).account()
+    } catch (error) {
+      await this.hooks.auth.logout(id, null).catch(() => undefined)
+      return { ok: false, error: { key: 'source.connect_failed', params: { error: errorText(error) }, error: true } }
+    }
+    if (this.settings.sources.some((s) => s.kind === 'drive' && s.account?.id === account.id)) {
+      // Forget only the new copy of the token: revoking it would sign out the existing source too.
+      await this.hooks.auth.logout(id, null).catch(() => undefined)
+      return { ok: false, error: { key: 'source.duplicate_account', params: { email: account.email }, error: true } }
+    }
+    const config = sanitizeSource({
+      ...draft,
+      id,
+      kind: 'drive',
+      name: draft.name?.trim() || account.email,
+      enabled: true,
+      account: { id: account.id, email: account.email, name: account.displayName }
+    })!
+    const session = new SourceSession(config, this.env)
+    session.tokens = tokens
+    this.addSession(config, session)
+    await session.open()
+    return { ok: true, id }
+  }
+
+  async updateSource(id: string, patch: Partial<SourceDraft & { enabled: boolean }>): Promise<AddSourceResult> {
+    const old = this.settings.sources.find((s) => s.id === id)
+    const session = this.sessions.get(id)
+    if (!old || !session) return { ok: false, error: null }
+    if (old.kind === 'local' && patch.path && this.folderTaken(patch.path, id)) return { ok: false, error: { key: 'source.duplicate_folder', error: true } }
+    const config = sanitizeSource({ ...old, ...patch })
+    if (!config) return { ok: false, error: { key: 'source.no_folder', error: true } }
+    const reopen = old.kind === 'local' && (config.path !== old.path || config.subfolders !== old.subfolders)
+    if (reopen) await session.flush()
+    this.setConfig(config)
+    if (reopen) {
+      await session.open()
+      this.sourceChanged('data')
+      this.sourceChanged('media')
+    }
+    return { ok: true, id }
+  }
+
+  async reconnectSource(id: string, successText: string): Promise<AddSourceResult> {
+    const session = this.sessions.get(id)
+    if (!session || session.config.kind !== 'drive') return { ok: false, error: null }
+    let tokens
+    try {
+      tokens = await this.hooks.auth.login(id, successText)
+    } catch {
+      return { ok: false, error: { key: 'login.failed', error: true } }
+    }
+    try {
+      const account = await this.hooks.makeDrive(tokens).account()
+      const expected = session.config.account?.id
+      if (expected && account.id !== expected) {
+        await this.hooks.auth.logout(id, null).catch(() => undefined)
+        return { ok: false, error: { key: 'source.other_account', params: { email: session.config.account?.email ?? '' }, error: true } }
       }
-    })
+    } catch {
+      // offline right after signing in: open() reports it
+    }
+    session.tokens = tokens
+    await session.open()
+    return { ok: true, id }
   }
 
-  /** Load the media list again and pick up changes made on another computer. */
-  refresh(quiet = false): Promise<void> {
-    return this.serial(async () => {
-      const backend = this.backend
-      const cache = this.cache
-      if (!backend || !cache) return
-      const session = this.session
-      this.loading = true
-      this.hooks.ui.library(this.getLibrary())
-      try {
-        const media = await backend.listMedia()
-        const remote = await backend.dataRevision()
-        if (session !== this.session) return
-        this.media = media
-        cache.writeList(media)
-        this.online = true
-        this.thumbs?.resetFailures()
-        if (remote !== null && remote !== this.base) {
-          const fresh = await backend.readData()
-          const freshData = fresh && session === this.session ? this.parseOrRescue(fresh.data, cache) : null
-          if (fresh && freshData) {
-            this.data = this.dirty || this.pending ? mergeData(this.data, freshData) : freshData
-            if (!this.dirty && !this.pending) {
-              this.base = fresh.revision
-              cache.writeData(fresh.data, fresh.revision, false)
-            }
-            this.adoptPrefs()
-            this.hooks.ui.data(this.data)
-          }
-        }
-        if (this.pending) {
-          this.dirty = true
-          this.scheduleSave(0)
-        }
-      } catch (error) {
-        if (session !== this.session) return
-        if (error instanceof OfflineError) this.online = false
-        else if (error instanceof AuthError) return void this.expired()
-        else {
-          this.hooks.log(`[refresh] ${errorText(error)}`)
-          if (!quiet) this.message('library.refresh_failed', { error: errorText(error) }, true)
-        }
-      } finally {
-        if (session === this.session) {
-          this.loading = false
-          this.hooks.ui.library(this.getLibrary())
-        }
-      }
-    })
+  /** Drive: sign out of the account and drop its offline copy. Local: forget the folder (the files stay). */
+  async removeSource(id: string, force = false): Promise<'done' | 'pending'> {
+    const session = this.sessions.get(id)
+    if (!session) return 'done'
+    await session.flush()
+    if (session.isPending && session.loaded && !force) return 'pending'
+    const cache = session.cache
+    const tokens = session.tokens
+    session.close()
+    this.sessions.delete(id)
+    if (session.config.kind === 'drive') {
+      await this.hooks.auth.logout(id, tokens).catch(() => undefined)
+      cache?.clear()
+    }
+    this.settings = { ...this.settings, sources: this.settings.sources.filter((s) => s.id !== id) }
+    this.saveSettingsFile()
+    this.hooks.ui.settings(this.settings)
+    this.sourceChanged('data')
+    this.sourceChanged('state')
+    return 'done'
   }
 
-  /** The Google sign-in is no longer valid: back to the sign-in screen (unsent changes stay cached). */
-  private async expired(): Promise<void> {
-    await this.hooks.auth.logout(null).catch(() => undefined)
-    this.tokens = null
-    this.closeLibrary()
-    return this.welcome('drive', { key: 'login.expired', error: true })
+  // --- library ------------------------------------------------------------
+  refresh(): Promise<void> {
+    return Promise.all([...this.sessions.values()].map((s) => (s.status === 'login' ? undefined : s.refresh()))).then(() => undefined)
   }
 
   mutate(op: DataOp): void {
-    if (!this.backend || !op || typeof op !== 'object') return
-    this.data = applyOp(this.data, op)
-    if (op.type === 'prefs') this.adoptPrefs()
-    this.hooks.ui.data(this.data)
-    this.dirty = true
-    this.setStatus('saving')
-    this.scheduleSave()
+    if (!op || typeof op !== 'object') return
+    const sessions = this.loadedSessions()
+    if (!sessions.length) return
+    const routes = routeOp(
+      op,
+      this.merged,
+      sessions.map((s) => s.id)
+    )
+    for (const session of sessions) session.apply(routes.get(session.id) ?? [])
   }
 
-  // --- files --------------------------------------------------------------
-  async upload(paths?: string[], albumId: string | null = null): Promise<void> {
-    const backend = this.backend
-    if (!backend) return
+  /** Upload into one source; albumId: also add the new files to that album. */
+  async upload(sourceId: string, paths?: string[], albumId: string | null = null): Promise<void> {
+    const session = this.sessions.get(sourceId)
+    if (!session?.loaded) return this.message('upload.no_source', undefined, true)
     const picked = paths?.length ? paths : await this.hooks.pickFiles()
     if (!picked.length) return
     const files = await collectFiles(picked)
     if (!files.length) return this.message('upload.unsupported', undefined, true)
-    const session = this.session
     const jobs = files.map((file) => ({ file, handle: this.transfers.add('upload', file.name, file.size) }))
     this.background(async () => {
       const added: string[] = []
       for (const { file, handle } of jobs) {
-        if (handle.signal.aborted || session !== this.session) {
+        if (handle.signal.aborted || !this.sessions.has(sourceId)) {
           handle.fail('cancelled')
           continue
         }
         handle.start()
         try {
-          const item = await backend.upload(fileSource(file.path, file.name, file.size, file.modified), handle.progress, handle.signal)
+          const item = await session.upload(fileSource(file.path, file.name, file.size, file.modified), handle.progress, handle.signal)
           handle.finish()
-          if (session !== this.session) continue
-          this.media = [...this.media.filter((m) => m.id !== item.id), item]
           added.push(item.id)
-          this.mediaChanged()
         } catch (error) {
           handle.fail(errorText(error))
           if (!isAbort(error)) this.hooks.log(`[upload] ${file.name}: ${errorText(error)}`)
         }
       }
-      if (session !== this.session) return
       if (albumId && added.length) this.mutate({ type: 'album.add', id: albumId, items: added })
-      if (added.length) this.message('upload.done', { count: added.length })
+      if (added.length) this.message('upload.done', { count: added.length, name: session.config.name })
       if (added.length < jobs.length && jobs.some((j) => !j.handle.signal.aborted)) this.message('upload.some_failed', undefined, true)
     })
   }
 
-  private async saveTo(item: MediaItem, target: string, handle: TransferHandle): Promise<void> {
-    const backend = this.backend
-    if (!backend) throw new BackendError('closed')
+  private async saveTo(id: string, target: string, handle: TransferHandle): Promise<void> {
+    const found = this.locate(id)
+    if (!found) throw new BackendError('file is gone')
     handle.start()
     try {
-      const response = await backend.open(item.id, null, handle.signal)
-      if (!response.body) throw new BackendError('empty response')
+      const response = await found.session.openFile(found.raw, null, handle.signal)
+      if (!response.ok || !response.body) throw new BackendError(`HTTP ${response.status}`)
       await pipeline(Readable.fromWeb(response.body as never), counter(handle), createWriteStream(target), { signal: handle.signal })
       handle.finish()
     } catch (error) {
@@ -665,7 +471,7 @@ export class Controller {
 
   async download(ids: string[]): Promise<void> {
     const items = ids.map((id) => this.item(id)).filter((m): m is MediaItem => Boolean(m))
-    if (!items.length || !this.backend) return
+    if (!items.length) return
     let folder = this.settings.download_folder
     let single: string | null = null
     if (!folder) {
@@ -688,7 +494,7 @@ export class Controller {
         taken.add(name.toLowerCase())
         try {
           if (target) mkdirSync(target, { recursive: true })
-          await this.saveTo(item, single ?? join(target!, name), handle)
+          await this.saveTo(item.id, single ?? join(target!, name), handle)
           saved++
         } catch (error) {
           if (!isAbort(error)) this.hooks.log(`[download] ${item.name}: ${errorText(error)}`)
@@ -700,13 +506,12 @@ export class Controller {
   }
 
   async downloadZip(ids: string[], name: string): Promise<void> {
-    const items = ids.map((id) => this.item(id)).filter((m): m is MediaItem => Boolean(m))
-    const backend = this.backend
-    if (!items.length || !backend) return
+    const items = ids.map((id) => this.locate(id)).filter((m): m is NonNullable<typeof m> => Boolean(m))
+    if (!items.length) return
     const safe = name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').trim() || 'OKgram'
     const target = await this.hooks.pickSaveFile(`${safe}.zip`, [{ name: 'ZIP', extensions: ['zip'] }])
     if (!target) return
-    const handle = this.transfers.add('zip', basename(target), items.reduce((sum, m) => sum + m.size, 0))
+    const handle = this.transfers.add('zip', basename(target), items.reduce((sum, m) => sum + m.item.size, 0))
     this.background(async () => {
       handle.start()
       const out = createWriteStream(target)
@@ -722,14 +527,15 @@ export class Controller {
       try {
         const names = new Set<string>()
         let done = 0
-        for (const item of items) {
+        for (const { session, raw, item } of items) {
           handle.signal.throwIfAborted()
           const entryName = uniqueName(item.name, names)
           names.add(entryName.toLowerCase())
           const entry = new ZipPassThrough(entryName)
           entry.mtime = new Date(item.modified || Date.now())
           zip.add(entry)
-          const response = await backend.open(item.id, null, handle.signal)
+          const response = await session.openFile(raw, null, handle.signal)
+          if (!response.ok) throw new BackendError(`HTTP ${response.status}`)
           const reader = response.body?.getReader()
           for (;;) {
             const part = reader ? await reader.read() : { done: true as const, value: undefined }
@@ -770,28 +576,22 @@ export class Controller {
 
   /** stem: the new name without the extension (the extension never changes). */
   async rename(id: string, stem: string): Promise<RenameResult> {
-    const item = this.item(id)
-    const backend = this.backend
-    if (!item || !backend) return 'failed'
+    const found = this.locate(id)
+    if (!found?.session.backend) return 'failed'
+    const { session, raw, item } = found
     const clean = stem.trim().replace(new RegExp(`\\.${item.ext}$`, 'i'), '')
     const name = `${clean}.${item.ext}`
     if (!clean || !validFileName(name)) return 'invalid'
     if (name === item.name) return 'ok'
-    const folder = (m: MediaItem): string => (backend.kind === 'local' ? dirname(m.id) : '')
-    const taken = this.media.some((m) => m.id !== id && folder(m) === folder(item) && m.name.toLowerCase() === name.toLowerCase())
+    const local = session.config.kind === 'local'
+    const folder = (rawId: string): string => (local ? dirname(rawId) : '')
+    const taken = session
+      .items()
+      .some((m) => m.id !== id && folder(splitId(m.id)[1]) === folder(raw) && m.name.toLowerCase() === name.toLowerCase())
     if (taken) return 'exists'
     try {
-      const updated = await backend.rename(id, name)
-      this.media = this.media.map((m) => (m.id === id ? updated : m))
-      if (updated.id !== id) {
-        const info = this.videoInfo[id]
-        if (info) {
-          this.videoInfo[updated.id] = { ...info, version: updated.version }
-          delete this.videoInfo[id]
-        }
-        this.mutate({ type: 'rekey', from: id, to: updated.id })
-      }
-      this.mediaChanged()
+      const updated = await session.rename(raw, name)
+      if (updated.id !== id) this.mutate({ type: 'rekey', from: id, to: updated.id })
       return 'ok'
     } catch (error) {
       if (error instanceof BackendError && error.message === 'exists') return 'exists'
@@ -801,40 +601,34 @@ export class Controller {
   }
 
   async trash(ids: string[]): Promise<number> {
-    const backend = this.backend
-    if (!backend) return 0
-    const done: string[] = []
-    let lastError = ''
+    const bySource = new Map<SourceSession, string[]>()
     for (const id of ids) {
-      try {
-        await backend.trash(id)
-        done.push(id)
-      } catch (error) {
-        lastError = errorText(error)
-        this.hooks.log(`[trash] ${lastError}`)
-      }
+      const found = this.locate(id)
+      if (!found) continue
+      if (!bySource.has(found.session)) bySource.set(found.session, [])
+      bySource.get(found.session)!.push(found.raw)
     }
-    if (done.length) {
-      const gone = new Set(done)
-      this.media = this.media.filter((m) => !gone.has(m.id))
-      this.mutate({ type: 'forget', ids: done })
-      this.mediaChanged()
+    const gone: string[] = []
+    let lastError = ''
+    for (const [session, raws] of bySource) {
+      const { done, error } = await session.trash(raws)
+      gone.push(...done.map((raw) => joinId(session.id, raw)))
+      if (error) lastError = error
     }
-    if (done.length < ids.length) this.message('trash.failed', { error: lastError }, true)
-    return done.length
+    if (gone.length) this.mutate({ type: 'forget', ids: gone })
+    if (gone.length < ids.length) this.message('trash.failed', { error: lastError }, true)
+    return gone.length
   }
 
   /** Drive: anyone with the link can view the file. Local: the file's path. Copied to the clipboard. */
   async share(id: string): Promise<string | null> {
-    const backend = this.backend
-    if (!backend || !this.item(id)) return null
+    const found = this.locate(id)
+    const backend = found?.session.backend
+    if (!found || !backend) return null
     try {
-      const link = backend.kind === 'local' ? backend.localPath!(id) : await backend.share(id)
+      const link = backend.kind === 'local' ? backend.localPath!(found.raw) : await backend.share(found.raw)
       this.hooks.writeClipboard(link)
-      if (backend.kind === 'drive') {
-        this.media = this.media.map((m) => (m.id === id ? { ...m, shared: true } : m))
-        this.mediaChanged()
-      }
+      if (backend.kind === 'drive') found.session.setShared(found.raw, true)
       return link
     } catch (error) {
       this.hooks.log(`[share] ${errorText(error)}`)
@@ -844,12 +638,12 @@ export class Controller {
   }
 
   async unshare(id: string): Promise<boolean> {
-    const backend = this.backend
-    if (!backend || backend.kind !== 'drive') return false
+    const found = this.locate(id)
+    const backend = found?.session.backend
+    if (!found || !backend || backend.kind !== 'drive') return false
     try {
-      await backend.unshare(id)
-      this.media = this.media.map((m) => (m.id === id ? { ...m, shared: false } : m))
-      this.mediaChanged()
+      await backend.unshare(found.raw)
+      found.session.setShared(found.raw, false)
       return true
     } catch (error) {
       this.message('share.failed', { error: errorText(error) }, true)
@@ -863,20 +657,20 @@ export class Controller {
 
   /** Open in the system's default app (a Drive file is downloaded to a temporary folder first). */
   async openInSystem(id: string): Promise<boolean> {
-    const item = this.item(id)
-    const backend = this.backend
-    if (!item || !backend) return false
+    const found = this.locate(id)
+    const backend = found?.session.backend
+    if (!found || !backend) return false
     let path: string
-    if (backend.kind === 'local') path = backend.localPath!(id)
+    if (backend.kind === 'local') path = backend.localPath!(found.raw)
     else {
       const folder = join(this.hooks.tempDir, 'okgram-open')
       mkdirSync(folder, { recursive: true })
-      path = join(folder, item.name)
-      const handle = this.transfers.add('download', item.name, item.size)
+      path = join(folder, found.item.name)
+      const handle = this.transfers.add('download', found.item.name, found.item.size)
       try {
         const current = statSync(path, { throwIfNoEntry: false })
-        if (current?.size === item.size) handle.finish()
-        else await this.saveTo(item, path, handle)
+        if (current?.size === found.item.size) handle.finish()
+        else await this.saveTo(id, path, handle)
       } catch (error) {
         if (!isAbort(error)) this.message('system.open_failed', { error: errorText(error) }, true)
         return false
@@ -888,81 +682,60 @@ export class Controller {
   }
 
   storeThumbnail(id: string, version: string, thumbnail: Uint8Array | null, info: VideoInfo | null): void {
-    const item = this.item(id)
-    if (!item || item.version !== version) return
-    if (info && item.kind === 'video' && Number(info.width) > 0 && Number(info.height) > 0) {
-      this.videoInfo[id] = { width: Math.round(info.width), height: Math.round(info.height), duration: Math.round(info.duration) || 0, version }
-    }
-    if (thumbnail && thumbnail.length && thumbnail.length < 4 * 1024 * 1024) {
-      try {
-        this.thumbs?.store(item, thumbnail)
-      } catch (error) {
-        this.hooks.log(`[thumb] ${errorText(error)}`)
-      }
-    }
-    this.mediaChanged()
+    const [source, raw] = splitId(id)
+    this.sessions.get(source)?.storeThumbnail(raw, version, thumbnail, info)
   }
 
   /** Thumbnail for the okgram://thumb/ protocol. */
   thumbnail(id: string): Promise<Thumb | null> {
-    const item = this.item(id)
-    return item && this.thumbs ? this.thumbs.get(item) : Promise.resolve(null)
+    const [source, raw] = splitId(id)
+    return this.sessions.get(source)?.thumbnail(raw) ?? Promise.resolve(null)
   }
 
   /** File content for the okgram://media/ protocol. */
-  async openMedia(id: string, range: string | null, signal?: AbortSignal): Promise<Response> {
-    const item = this.item(id)
-    const backend = this.backend
-    if (!item || !backend) return new Response('Not found', { status: 404 })
-    try {
-      const upstream = await backend.open(id, range, signal)
-      const headers = new Headers({ 'Content-Type': item.mime, 'Accept-Ranges': 'bytes' })
-      for (const name of ['content-length', 'content-range']) {
-        const value = upstream.headers.get(name)
-        if (value) headers.set(name, value)
-      }
-      return new Response(upstream.body, { status: upstream.status, headers })
-    } catch (error) {
-      if (error instanceof OfflineError) this.setOnline(false)
-      return new Response('Unavailable', { status: 503 })
-    }
+  openMedia(id: string, range: string | null, signal?: AbortSignal): Promise<Response> {
+    const [source, raw] = splitId(id)
+    const session = this.sessions.get(source)
+    return session ? session.openFile(raw, range, signal) : Promise.resolve(new Response('Not found', { status: 404 }))
   }
 
-  async quota(): Promise<Quota | null> {
-    const backend = this.backend
-    if (!backend) return null
-    const library = this.media.reduce((sum, m) => sum + m.size, 0)
-    try {
-      const quota = await backend.quota()
-      return quota ? { ...quota, library } : null
-    } catch {
-      return null
+  async quota(): Promise<Quota[]> {
+    const result: Quota[] = []
+    for (const session of this.loadedSessions()) {
+      const library = session.items().reduce((sum, m) => sum + m.size, 0)
+      try {
+        const quota = await session.backend!.quota()
+        if (quota) result.push({ source: session.id, ...quota, library })
+      } catch {
+        result.push({ source: session.id, used: 0, limit: null, library })
+      }
     }
+    return result
   }
 
   cacheSize(): number {
-    return this.cache?.size() ?? 0
+    return [...this.sessions.values()].reduce((sum, s) => sum + (s.cache?.size() ?? 0), 0)
   }
 
   clearCache(): void {
-    if (!this.cache || !this.backend) return
-    this.cache.clearThumbs()
-    this.thumbs = new ThumbService(this.cache.thumbs, this.backend, this.hooks.resizeImage)
+    for (const session of this.sessions.values()) session.clearThumbs()
     this.message('settings.cache_cleared')
   }
 
   // --- settings -----------------------------------------------------------
   async updateSettings(patch: Partial<Settings>): Promise<Settings> {
     const before = this.settings
-    this.settings = sanitizeSettings({ ...this.settings, ...patch })
+    // Sources change only through their own calls.
+    const { sources: _ignored, ...rest } = patch
+    this.settings = sanitizeSettings({ ...this.settings, ...rest, sources: this.settings.sources })
     this.saveSettingsFile()
-    const keys = Object.keys(pickPrefs(patch)) as (keyof Prefs)[]
-    if (this.backend && keys.length) {
+    const keys = Object.keys(pickPrefs(rest)) as (keyof Prefs)[]
+    if (keys.length) {
       const prefs = prefsOf(this.settings)
       this.mutate({ type: 'prefs', patch: Object.fromEntries(keys.map((key) => [key, prefs[key]])) as Partial<Prefs> })
     }
     if (resolveFlags(before).native_titlebar !== resolveFlags(this.settings).native_titlebar) this.hooks.nativeFrameChanged?.(resolveFlags(this.settings).native_titlebar)
-    if (before.sync_minutes !== this.settings.sync_minutes) this.startSync()
+    if (before.sync_minutes !== this.settings.sync_minutes) for (const session of this.sessions.values()) session.startSync()
     this.hooks.ui.settings(this.settings)
     return this.settings
   }
@@ -1001,47 +774,15 @@ export class Controller {
     return 'ok'
   }
 
-  // --- leaving -------------------------------------------------------------
-  /** Drive: sign out. Local: close the folder. 'pending' = changes not uploaded yet. */
-  async leave(force = false): Promise<'done' | 'pending'> {
-    if (this.saveTimer) {
-      clearTimeout(this.saveTimer)
-      this.saveTimer = null
-    }
-    if (this.dirty) await this.save()
-    await this.idle()
-    if (this.pending && !force) return 'pending'
-    const mode = this.mode
-    this.transfers.cancelAll()
-    if (mode === 'drive') {
-      await this.welcome('drive', { key: 'login.logging_out' }, false, true)
-      await this.hooks.auth.logout(this.tokens).catch(() => undefined)
-      this.cache?.clear()
-      this.tokens = null
-    }
-    this.closeLibrary()
-    this.settings = { ...this.settings, storage: null, last_account: mode === 'drive' ? {} : this.settings.last_account }
-    this.saveSettingsFile()
-    await this.welcome(null, { key: mode === 'drive' ? 'login.logged_out' : 'login.closed' })
-    return 'done'
+  /** Save every source now and wait for it. */
+  async flush(): Promise<void> {
+    await Promise.all([...this.sessions.values()].map((s) => s.flush()))
   }
 
-  /** Before the app quits: send unsaved changes (at most 15 s). */
+  /** Before the app quits: send unsaved changes of every source (at most 15 s together). */
   async shutdown(): Promise<void> {
-    if (this.saveTimer) {
-      clearTimeout(this.saveTimer)
-      this.saveTimer = null
-      void this.save()
-    }
-    this.stopRetry()
-    if (this.syncTimer) clearInterval(this.syncTimer)
-    this.stopWatch?.()
     this.transfers.cancelAll()
-    await Promise.race([this.idle(), new Promise((resolve) => setTimeout(resolve, 15_000))])
-  }
-
-  /** Mode of the open library (for the window title and menus). */
-  get storage(): StorageMode | null {
-    return this.backend?.kind ?? null
+    await Promise.race([Promise.all([...this.sessions.values()].map((s) => s.flush())), new Promise((resolve) => setTimeout(resolve, 15_000))])
+    for (const session of this.sessions.values()) session.close()
   }
 }

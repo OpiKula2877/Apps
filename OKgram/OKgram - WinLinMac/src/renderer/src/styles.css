@@ -647,7 +647,10 @@ p {
 }
 @container (max-width: 900px) {
   .size-slider {
-    width: 70px;
+    display: none;
+  }
+  .toolbar-search {
+    width: 140px;
   }
   .color-filter {
     gap: 2px;
@@ -1635,5 +1638,135 @@ span.tree-caret {
   }
   .side {
     width: 220px;
+  }
+}
+
+/* --- sources panel ----------------------------------------------------- */
+.library-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.library-main .library-body {
+  min-width: 0;
+}
+.sources-panel {
+  width: 280px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px 10px;
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  background: var(--bg);
+}
+.sources-head {
+  display: flex;
+  align-items: center;
+}
+.sources-head .side-heading {
+  padding: 4px;
+}
+.source-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.source-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.source-row > input[type='checkbox'] {
+  margin-top: 2px;
+  flex: none;
+  cursor: pointer;
+}
+.source-row.off {
+  opacity: 0.6;
+}
+.source-row.status-error,
+.source-row.status-login {
+  border-color: var(--danger);
+}
+.source-icon {
+  display: inline-flex;
+  flex: none;
+}
+.source-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.source-name {
+  font-weight: bold;
+}
+.source-sub {
+  font-size: 0.85em;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.source-sub.error-text {
+  color: var(--danger);
+}
+.source-action {
+  align-self: flex-start;
+  font-size: 0.9em;
+  padding: 0;
+}
+.source-count {
+  font-size: 0.85em;
+  color: var(--muted);
+  flex: none;
+  padding-top: 1px;
+}
+.source-more {
+  padding: 2px;
+  margin: -2px -4px 0 0;
+}
+.stack-tight {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.settings-sources {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.settings-sources li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.settings-sources li > .muted {
+  max-width: 50%;
+}
+.usage-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 8px;
+}
+.usage-row + .usage-row {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+@media (max-width: 1000px) {
+  .sources-panel {
+    width: 230px;
   }
 }

@@ -1,6 +1,6 @@
 // IPC handlers: the only door between the windows and the controller.
 import { ipcMain } from 'electron'
-import type { Settings, StorageMode, VideoInfo } from '../shared/ipc'
+import type { Settings, SourceDraft, VideoInfo } from '../shared/ipc'
 import type { DataOp } from '../shared/model'
 import type { Controller } from './controller'
 
@@ -18,16 +18,22 @@ export function registerIpc(controller: Controller): void {
   handle('settings:get', () => controller.getSettings())
   handle('settings:update', (patch: Partial<Settings>) => controller.updateSettings(patch))
 
-  handle('welcome:mode', (mode: StorageMode | null) => controller.chooseMode(mode === 'drive' || mode === 'local' ? mode : null))
+  handle('sources:get', () => controller.getSources())
+  handle('sources:default-folder', () => controller.defaultFolder())
+  handle('sources:pick-folder', (path?: string | null) => controller.pickFolder(typeof path === 'string' ? path : null))
+  handle('sources:add-local', (draft: SourceDraft) => controller.addLocalSource(draft))
+  handle('sources:add-drive', (draft: SourceDraft, successText: string) => controller.addDriveSource(draft, String(successText)))
+  handle('sources:update', (id: string, patch: Partial<SourceDraft & { enabled: boolean }>) => controller.updateSource(String(id), patch ?? {}))
+  handle('sources:reconnect', (id: string, successText: string) => controller.reconnectSource(String(id), String(successText)))
+  handle('sources:remove', (id: string, force?: boolean) => controller.removeSource(String(id), Boolean(force)))
+  handle('login:has-secret', () => controller.hasClientSecret())
   handle('login:secret', () => controller.chooseClientSecret())
-  handle('login:start', (successText: string) => controller.signIn(String(successText)))
-  handle('login:retry', () => controller.retry())
-  handle('local:open', (folder: string | null | true) => controller.openLocal(folder === true ? true : typeof folder === 'string' ? folder : null))
-  handle('library:leave', (force?: boolean) => controller.leave(Boolean(force)))
 
   handle('library:refresh', () => controller.refresh())
   handle('data:mutate', (op: DataOp) => controller.mutate(op))
-  handle('media:upload', (paths?: string[], albumId?: string | null) => controller.upload(strings(paths), typeof albumId === 'string' ? albumId : null))
+  handle('media:upload', (source: string, paths?: string[], albumId?: string | null) =>
+    controller.upload(String(source), strings(paths), typeof albumId === 'string' ? albumId : null)
+  )
   handle('media:download', (ids: string[]) => controller.download(strings(ids)))
   handle('media:zip', (ids: string[], name: string) => controller.downloadZip(strings(ids), String(name)))
   handle('transfer:cancel', (id: string) => controller.cancelTransfer(String(id)))

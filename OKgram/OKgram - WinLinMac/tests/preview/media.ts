@@ -45,11 +45,16 @@ async function blobUrl(canvas: HTMLCanvasElement, type: string): Promise<{ url: 
   return { url: URL.createObjectURL(blob), size: blob.size }
 }
 
-function base(id: string, patch: Partial<MediaItem>): MediaItem {
-  const ext = id.split('.').pop()!.toLowerCase()
+/** Sample sources: a folder on this computer and two Google accounts. */
+export const sourceOf = (raw: string): string => (raw.startsWith('Léto') || raw.endsWith('.webm') ? 'drive1' : raw.startsWith('Výlet 2025') ? 'drive2' : 'pc')
+
+function base(raw: string, patch: Partial<MediaItem>): MediaItem {
+  const ext = raw.split('.').pop()!.toLowerCase()
+  const source = sourceOf(raw)
   return {
-    id,
-    name: id.split('/').pop()!,
+    id: `${source}:${raw}`,
+    source,
+    name: raw.split('/').pop()!,
     ext,
     kind: 'image',
     mime: ext === 'png' ? 'image/png' : 'image/jpeg',

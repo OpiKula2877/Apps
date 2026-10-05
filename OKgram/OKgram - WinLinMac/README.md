@@ -47,11 +47,17 @@ npm run smoke
 
 Instalátory nejsou podepsané (SmartScreen: „Další informace → Přesto spustit“, macOS: pravé tlačítko → Otevřít, Linux: `chmod +x`).
 
-## Úložiště
+## Zdroje
 
-Volí se na úvodní obrazovce a mění v *Nastavení → Účet*.
+Knihovna se skládá ze **zdrojů** v panelu vpravo: libovolný počet lokálních složek a Google účtů (i víc účtů najednou). Každý zdroj má název, ikonu, barvu a zaškrtnutí, které filtruje zobrazení. Nahrávání při více zaškrtnutých zdrojích se zeptá, kam soubory uložit. Seznam zdrojů je v `settings.json` počítače (cesty jsou místní), každý Google účet má vlastní token v `tokens/<id zdroje>.bin`.
+
+Starší nastavení s jedním úložištěm se při spuštění převede na jeden zdroj (i s přihlášením).
 
 ### Google Disk
+
+Aplikace přibaluje vlastní OAuth klienta `resources/client_secret.json` (typ Desktop app, publikovaný). Uživatel ho nevybírá, jen se přihlásí. Vlastní `client_secret.json` vybraný v aplikaci má přednost. U klienta typu Desktop app Google nepovažuje secret za tajný, proto smí být v instalátoru.
+
+Vlastní klient:
 
 1. V [Google Cloud Console](https://console.cloud.google.com) vytvořte projekt (nebo použijte projekt OKpass) a zapněte **Google Drive API**.
 2. **Google Auth Platform**: Branding, Audience **External**, Data Access se scope `.../auth/drive.file`.
@@ -62,7 +68,7 @@ V režimu *Testing* musí být účet v *Test users* a přihlášení vyprší p
 
 Na Disku vznikne složka **OKgram**: fotky a videa přímo v ní, alba, hvězdičky, rámečky, uživatelské jméno a nastavení v `okgram.json`. Kvůli `drive.file` aplikace vidí jen soubory, které sama nahrála. Soubory nahrané do složky přes web Disku nevidí.
 
-### Tento počítač
+### Lokální složka
 
 Libovolná složka (výchozí `Obrázky/OKgram`). OKgram ukáže podporované soubory ve složce a podsložkách (kromě skrytých) a změny ve složce sleduje. `okgram.json` je přímo ve složce, takže alba putují se složkou (např. přes Syncthing nebo síťový disk). Mazání přesouvá do systémového koše.
 

@@ -79,6 +79,7 @@ export function driveItem(file: DriveFile): MediaItem | null {
     height,
     duration: video?.durationMillis ? Number(video.durationMillis) || null : null,
     version: file.md5Checksum || file.version || file.modifiedTime || '0',
+    source: '',
     shared: Boolean(file.shared)
   }
 }

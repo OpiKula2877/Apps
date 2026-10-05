@@ -23,6 +23,7 @@ function item(id: string, patch: Partial<MediaItem> = {}): MediaItem {
     height: null,
     duration: null,
     version: '1',
+    source: 's',
     shared: false,
     ...patch
   }

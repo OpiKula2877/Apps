@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { defaultSettings } from '../src/core/settings'
-import type { Message, Screen, Settings } from '../src/shared/ipc'
+import type { Message, Screen, Settings, SourceDraft } from '../src/shared/ipc'
 import type { LibraryData } from '../src/shared/model'
 import { Controller } from '../src/main/controller'
 import type { Hooks } from '../src/main/hooks'
@@ -75,10 +75,10 @@ describe('LocalLibrary', () => {
   })
 })
 
-function hooks(overrides: Partial<Hooks> = {}) {
+function hooks(overrides: Partial<Hooks> = {}, initial: Record<string, unknown> = {}) {
   const screens: Screen[] = []
   const messages: Message[] = []
-  let settings: Settings = defaultSettings()
+  let settings: Settings = { ...defaultSettings(), ...initial } as Settings
   let data: LibraryData | null = null
   const result: Hooks = {
     ui: {
@@ -88,7 +88,8 @@ function hooks(overrides: Partial<Hooks> = {}) {
       status: () => undefined,
       message: (m) => messages.push(m),
       transfers: () => undefined,
-      settings: () => undefined
+      settings: () => undefined,
+      sources: () => undefined
     },
     loadSettings: () => settings,
     saveSettings: (s) => (settings = s),
@@ -106,7 +107,7 @@ function hooks(overrides: Partial<Hooks> = {}) {
     makeDrive: () => {
       throw new Error('not in tests')
     },
-    makeLocal: (path) => new LocalLibrary(path, { trash: toTrash }),
+    makeLocal: (path, subfolders) => new LocalLibrary(path, { trash: toTrash }, subfolders),
     pickFiles: async () => [],
     pickFolder: async () => null,
     pickSaveFile: async () => null,
@@ -121,102 +122,143 @@ function hooks(overrides: Partial<Hooks> = {}) {
   return { hooks: result, screens, messages, settings: () => settings, data: () => data }
 }
 
-const readData = () => JSON.parse(readFileSync(join(folder, 'okgram.json'), 'utf8'))
+const readData = (dir = folder) => JSON.parse(readFileSync(join(dir, 'okgram.json'), 'utf8'))
+const draft = (path: string, patch: Partial<SourceDraft> = {}): SourceDraft => ({ name: '', icon: 'folder', color: null, path, subfolders: true, ...patch })
 
-describe('Controller with a local folder', () => {
-  it('opens the default folder, saves changes to okgram.json and remembers the choice', async () => {
+async function withSource(h = hooks()) {
+  const controller = new Controller(h.hooks)
+  await controller.start()
+  const added = await controller.addLocalSource(draft(folder))
+  if (!added.ok) throw new Error('source not added')
+  return { controller, id: added.id, h }
+}
+
+describe('Controller with local sources', () => {
+  it('starts with no source and adds a folder', async () => {
     const h = hooks()
     const controller = new Controller(h.hooks)
     await controller.start()
-    expect(h.screens.at(-1)).toMatchObject({ name: 'welcome', mode: null })
-    await controller.openLocal(null)
-    expect(h.screens.at(-1)).toMatchObject({ name: 'library', mode: 'local' })
-    expect(controller.getLibrary().media).toHaveLength(3)
-    expect(h.settings()).toMatchObject({ storage: 'local', local_folder: folder })
+    expect(h.screens.at(-1)).toEqual({ name: 'library', session: 1 })
+    expect(controller.getSources()).toEqual([])
+    const added = await controller.addLocalSource(draft(folder, { name: 'Fotky', color: 'blue' }))
+    expect(added.ok).toBe(true)
+    const [source] = controller.getSources()
+    expect(source).toMatchObject({ kind: 'local', name: 'Fotky', color: 'blue', path: folder, status: 'ready', count: 3 })
+    expect(controller.getLibrary().media.every((m) => m.source === source.id && m.id.startsWith(`${source.id}:`))).toBe(true)
+    expect(h.settings().sources).toHaveLength(1)
+    await controller.shutdown()
+  })
 
-    controller.mutate({ type: 'album.create', id: 'al', name: 'Moře', parent: null, items: ['a.png'] })
-    controller.mutate({ type: 'meta', ids: ['clip.mp4'], patch: { star: true } })
+  it('refuses a folder twice and a folder it cannot use', async () => {
+    const { controller } = await withSource()
+    expect(await controller.addLocalSource(draft(folder))).toMatchObject({ ok: false, error: { key: 'source.duplicate_folder' } })
+    const file = join(root, 'plain-file')
+    writeFileSync(file, 'x')
+    expect(await controller.addLocalSource(draft(join(file, 'sub')))).toMatchObject({ ok: false, error: { key: 'local.not_writable' } })
+    expect(controller.getSources()).toHaveLength(1)
+    await controller.shutdown()
+  })
+
+  it('saves stars, albums and the user name into okgram.json of the folder', async () => {
+    const { controller, id } = await withSource()
+    controller.mutate({ type: 'album.create', id: 'al', name: 'Moře', parent: null, items: [`${id}:a.png`] })
+    controller.mutate({ type: 'meta', ids: [`${id}:clip.mp4`], patch: { star: true } })
     controller.mutate({ type: 'profile', username: 'OpiKula' })
-    await controller.save()
+    await controller.flush()
     const saved = readData()
     expect(saved.app).toBe('okgram')
     expect(saved.albums[0]).toMatchObject({ name: 'Moře', items: ['a.png'] })
     expect(saved.items['clip.mp4'].star).toBe(true)
     expect(saved.profile.username).toBe('OpiKula')
+    expect(controller.getData().albums[0].items).toEqual([`${id}:a.png`])
     await controller.shutdown()
   })
 
-  it('keeps preferences in the library and joins changes from another computer', async () => {
-    const h = hooks()
-    const controller = new Controller(h.hooks)
-    await controller.openLocal(folder)
-    await controller.updateSettings({ theme: 'light', sync_minutes: 0 })
-    await controller.save()
-    expect(readData().prefs.theme).toBe('light')
+  it('keeps an album with files from two sources, each in its own data file', async () => {
+    const second = join(root, 'second')
+    mkdirSync(second)
+    writeFileSync(join(second, 'z.png'), PNG)
+    const { controller, id } = await withSource()
+    const other = await controller.addLocalSource(draft(second, { name: 'Druhá' }))
+    if (!other.ok) throw new Error('second source')
+    controller.mutate({ type: 'album.create', id: 'mix', name: 'Mix', parent: null, items: [`${id}:a.png`, `${other.id}:z.png`] })
+    controller.mutate({ type: 'album.create', id: 'sub', name: 'Pod', parent: 'mix' })
+    controller.mutate({ type: 'album.update', id: 'mix', patch: { cover: `${other.id}:z.png` } })
+    await controller.flush()
+    expect(readData().albums.find((a: { id: string }) => a.id === 'mix')).toMatchObject({ items: ['a.png'], cover: null })
+    expect(readData(second).albums.find((a: { id: string }) => a.id === 'mix')).toMatchObject({ items: ['z.png'], cover: 'z.png' })
+    expect(readData(second).albums.find((a: { id: string }) => a.id === 'sub')?.parent).toBe('mix')
+    const album = controller.getData().albums.find((a) => a.id === 'mix')!
+    expect(album.items.sort()).toEqual([`${id}:a.png`, `${other.id}:z.png`].sort())
+    expect(album.cover).toBe(`${other.id}:z.png`)
+    // Removing a source drops its files from the album, not the album.
+    expect(await controller.removeSource(other.id)).toBe('done')
+    expect(controller.getData().albums.find((a) => a.id === 'mix')?.items).toEqual([`${id}:a.png`])
+    expect(existsSync(join(second, 'z.png'))).toBe(true)
+    await controller.shutdown()
+  })
 
-    // another computer edits the same okgram.json meanwhile
+  it('keeps preferences with the library and joins changes from another computer', async () => {
+    const { controller } = await withSource()
+    await controller.updateSettings({ theme: 'light', sync_minutes: 0 })
+    await controller.flush()
+    expect(readData().prefs.theme).toBe('light')
     const other = readData()
     other.albums.push({ id: 'remote', name: 'Odjinud', icon: 'globe', color: null, parent: null, cover: null, items: [], order: 5, created: Date.now(), modified: Date.now() })
     other.prefs = { ...other.prefs, theme: 'dark' }
     other.prefs_modified = Date.now() + 1000
     writeFileSync(join(folder, 'okgram.json'), JSON.stringify(other))
-
     controller.mutate({ type: 'album.create', id: 'here', name: 'Tady', parent: null })
-    await controller.save()
-    const names = readData().albums.map((a: { name: string }) => a.name).sort()
-    expect(names).toEqual(['Odjinud', 'Tady'])
+    await controller.flush()
+    expect(readData().albums.map((a: { name: string }) => a.name).sort()).toEqual(['Odjinud', 'Tady'])
     expect(controller.getSettings().theme).toBe('dark')
     await controller.shutdown()
   })
 
-  it('renames a file and keeps it in its albums', async () => {
-    const h = hooks()
-    const controller = new Controller(h.hooks)
-    await controller.openLocal(folder)
-    controller.mutate({ type: 'album.create', id: 'al', name: 'A', parent: null, items: ['Léto/b.png'] })
-    expect(await controller.rename('Léto/b.png', 'a')).toBe('ok')
-    expect(await controller.rename('a.png', 'clip')).toBe('ok')
-    expect(await controller.rename('clip.png', 'bad/name')).toBe('invalid')
-    expect(controller.getData().albums[0].items).toEqual(['Léto/a.png'])
-    expect(await controller.trash(['Léto/a.png'])).toBe(1)
+  it('renames and trashes files and keeps the albums right', async () => {
+    const { controller, id } = await withSource()
+    controller.mutate({ type: 'album.create', id: 'al', name: 'A', parent: null, items: [`${id}:Léto/b.png`] })
+    expect(await controller.rename(`${id}:Léto/b.png`, 'a')).toBe('ok')
+    expect(await controller.rename(`${id}:a.png`, 'clip')).toBe('ok')
+    expect(await controller.rename(`${id}:clip.png`, 'bad/name')).toBe('invalid')
+    expect(controller.getData().albums[0].items).toEqual([`${id}:Léto/a.png`])
+    expect(await controller.trash([`${id}:Léto/a.png`])).toBe(1)
     expect(controller.getData().albums[0].items).toEqual([])
     await controller.shutdown()
   })
 
-  it('uploads dropped folders and adds the files to an album', async () => {
+  it('uploads dropped folders into the chosen source and album', async () => {
     const h = hooks()
-    const controller = new Controller(h.hooks)
-    await controller.openLocal(folder)
+    const { controller, id } = await withSource(h)
     const drop = join(root, 'drop')
     mkdirSync(join(drop, 'inner'), { recursive: true })
     writeFileSync(join(drop, 'n1.png'), PNG)
     writeFileSync(join(drop, 'inner', 'n2.png'), PNG)
     writeFileSync(join(drop, 'skip.doc'), 'x')
     controller.mutate({ type: 'album.create', id: 'al', name: 'A', parent: null })
-    await controller.upload([drop], 'al')
+    await controller.upload(id, [drop], 'al')
     await new Promise((resolve) => setTimeout(resolve, 300))
     await (controller as unknown as { work: Promise<void> }).work
-    expect(controller.getData().albums[0].items.sort()).toEqual(['n1.png', 'n2.png'])
+    expect(controller.getData().albums[0].items.sort()).toEqual([`${id}:n1.png`, `${id}:n2.png`])
     expect(existsSync(join(folder, 'n2.png'))).toBe(true)
     expect(h.messages.some((m) => m.key === 'upload.done')).toBe(true)
     await controller.shutdown()
   })
 
-  it('closes the library and starts on the storage choice next time', async () => {
-    const h = hooks()
-    const controller = new Controller(h.hooks)
-    await controller.openLocal(folder)
-    expect(await controller.leave()).toBe('done')
-    expect(h.screens.at(-1)).toMatchObject({ name: 'welcome', mode: null })
-    expect(h.settings().storage).toBeNull()
+  it('hides a source without forgetting it and can skip subfolders', async () => {
+    const { controller, id } = await withSource()
+    await controller.updateSource(id, { enabled: false })
+    expect(controller.getSources()[0].enabled).toBe(false)
+    await controller.updateSource(id, { subfolders: false })
+    expect(controller.getLibrary().media.map((m) => m.id).sort()).toEqual([`${id}:a.png`, `${id}:clip.mp4`])
+    await controller.shutdown()
   })
 
-  it('reports a folder it cannot use', async () => {
-    const file = join(root, 'plain-file')
-    writeFileSync(file, 'x')
-    const h = hooks()
-    const controller = new Controller(h.hooks)
-    await controller.openLocal(join(file, 'sub'))
-    expect(h.screens.at(-1)).toMatchObject({ name: 'welcome', mode: 'local', connectError: true })
+  it('takes over the single folder from older settings', async () => {
+    const h = hooks({}, { storage: 'local', local_folder: folder })
+    const controller = new Controller({ ...h.hooks, loadSettings: () => ({ storage: 'local', local_folder: folder }) as unknown as Settings })
+    await controller.start()
+    expect(controller.getSources()).toMatchObject([{ id: 'local0', kind: 'local', path: folder, status: 'ready' }])
+    await controller.shutdown()
   })
 })
