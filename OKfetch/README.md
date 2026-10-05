@@ -1,6 +1,8 @@
 # OKfetch
 
-OKfetch je peer-to-peer chat pro šifrované i nešifrované zprávy, soubory a skupiny. Nepotřebuje server, účet ani placenou službu: data jsou jen na vašem počítači a lidé se spojují přímo, přes veřejnou DHT ([HyperDHT](https://github.com/holepunchto/hyperdht)). Když se dvě zařízení nemohou spojit přímo (třeba obě na mobilních datech), jdou šifrované zprávy přes veřejné Nostr relay servery – zdarma a bez registrace. Aplikace je napsaná v **React + TypeScript** a běží v **Electronu** na Windows, Linuxu i macOS a jako **APK na Androidu** (od verze 10). Telefon a počítač si rozumí. Vypadá a nastavuje se stejně jako OKpass.
+OKfetch je chat pro Windows, Linux, macOS a Android, ve kterém zprávy, soubory a skupiny putují přímo mezi zařízeními, bez serveru a bez účtu. Každý kontakt má šifrovaný i nešifrovaný chat, a když přímé spojení nejde, zprávy jdou šifrovaně přes veřejné Nostr relay.
+
+**Stažení:** `OKfetch-Setup.exe` pro Windows a `OKfetch.apk` pro Android najdete na [apps.opikula.dev](https://apps.opikula.dev). Instalačku si můžete sestavit i sami ze zdrojového kódu, viz [Instalace](#instalace-windows-linux-macos).
 
 | Složka | Obsah |
 |---|---|
@@ -49,18 +51,31 @@ OKfetch je peer-to-peer chat pro šifrované i nešifrované zprávy, soubory a 
 ## Požadavky
 
 - Připojení k internetu (Wi-Fi, ethernet i mobilní data). Žádný port otvírat nemusíte.
-- Pro sestavení ze zdrojových souborů: [Node.js](https://nodejs.org) 20 nebo novější a [Git](https://git-scm.com).
+- Jen pro sestavení ze zdrojového kódu: [Node.js](https://nodejs.org) 20 nebo novější. Hotová instalačka Node.js nepotřebuje.
 
 ## Instalace: Windows, Linux, macOS
 
+### Možnost 1: stáhnout instalačku (Windows)
+
+Stáhněte `OKfetch-Setup.exe` na [apps.opikula.dev](https://apps.opikula.dev) a spusťte ho. Nic dalšího instalovat nemusíte, vše potřebné je uvnitř instalačky.
+
+### Možnost 2: ze zdrojového kódu
+
+1. Nainstalujte [Node.js](https://nodejs.org) 20 nebo novější (verzi LTS). Na Windows to jde i příkazem `winget install OpenJS.NodeJS.LTS`.
+2. Stáhněte kód přes [Git](https://git-scm.com) příkazem `git clone https://github.com/OpiKula2877/Apps.git`, nebo na GitHubu klikněte na **Code, Download ZIP** a ZIP rozbalte.
+3. Vyberte si:
+
+**Sestavit vlastní Setup.exe (Windows):** spusťte dvojklikem `OKfetch - WinLinMac/build-setup.bat`. Skript stáhne závislosti, sestaví instalačku a uloží ji jako `Setup\OKfetch-Setup.exe` ve složce `Apps`. Když Node.js chybí, nabídne, že ho nainstaluje.
+
+**Spustit bez instalace:**
+
 ```bash
-git clone https://github.com/OpiKula2877/Apps.git
 cd "Apps/OKfetch/OKfetch - WinLinMac"
 npm install
 npm run dev
 ```
 
-`npm run dev` aplikaci spustí. Instalátor si sestavíte takto (výsledek je ve složce `dist/`):
+**Sestavit instalátor příkazem** (po `npm install`, výsledek je ve složce `dist/`):
 
 | Systém | Příkaz | Výsledek |
 |---|---|---|

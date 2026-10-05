@@ -1,6 +1,8 @@
 # OKpass
 
-OKpass je šifrovaný správce poznámek a hesel. Data jsou uložená na vašem Google Disku a šifrují se na vašem zařízení, ještě než se nahrají. Aplikace běží na Windows, Linuxu, macOS a Androidu. Všechny verze používají stejný soubor trezoru i stejný klíč.
+OKpass je šifrovaný správce poznámek a hesel pro Windows, Linux, macOS a Android. Data se šifrují přímo ve vašem zařízení a ukládají se do složky `OKpass` na vašem Google Disku.
+
+**Stažení:** `OKpass-Setup.exe` pro Windows a `OKpass.apk` pro Android najdete na [apps.opikula.dev](https://apps.opikula.dev). Instalačku si můžete sestavit i sami ze zdrojového kódu, viz [Instalace](#instalace-windows-linux-macos).
 
 | Složka | Obsah |
 |---|---|
@@ -33,19 +35,32 @@ OKpass je šifrovaný správce poznámek a hesel. Data jsou uložená na vašem 
 ## Požadavky
 
 - Google účet a projekt v [Google Cloud Console](https://console.cloud.google.com) se zapnutým Google Drive API.
-- Pro desktop: [Node.js](https://nodejs.org) 20 nebo novější a [Git](https://git-scm.com).
 - Pro Android: Android 7.0 nebo novější se službami Google Play.
+- Jen pro sestavení ze zdrojového kódu: [Node.js](https://nodejs.org) 20 nebo novější. Hotová instalačka Node.js nepotřebuje.
 
 ## Instalace: Windows, Linux, macOS
 
+### Možnost 1: stáhnout instalačku (Windows)
+
+Stáhněte `OKpass-Setup.exe` na [apps.opikula.dev](https://apps.opikula.dev) a spusťte ho. Nic dalšího instalovat nemusíte, vše potřebné je uvnitř instalačky.
+
+### Možnost 2: ze zdrojového kódu
+
+1. Nainstalujte [Node.js](https://nodejs.org) 20 nebo novější (verzi LTS). Na Windows to jde i příkazem `winget install OpenJS.NodeJS.LTS`.
+2. Stáhněte kód přes [Git](https://git-scm.com) příkazem `git clone https://github.com/OpiKula2877/Apps.git`, nebo na GitHubu klikněte na **Code, Download ZIP** a ZIP rozbalte.
+3. Vyberte si:
+
+**Sestavit vlastní Setup.exe (Windows):** spusťte dvojklikem `OKpass - WinLinMac/build-setup.bat`. Skript stáhne závislosti, sestaví instalačku a uloží ji jako `Setup\OKpass-Setup.exe` ve složce `Apps`. Když Node.js chybí, nabídne, že ho nainstaluje.
+
+**Spustit bez instalace:**
+
 ```bash
-git clone https://github.com/OpiKula2877/Apps.git
 cd "Apps/OKpass/OKpass - WinLinMac"
 npm install
 npm run dev
 ```
 
-`npm run dev` aplikaci spustí. Instalátor si sestavíte takto (výsledek je ve složce `dist/`):
+**Sestavit instalátor příkazem** (po `npm install`, výsledek je ve složce `dist/`):
 
 | Systém | Příkaz | Výsledek |
 |---|---|---|

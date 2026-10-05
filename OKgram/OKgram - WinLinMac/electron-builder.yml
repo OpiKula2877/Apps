@@ -1,0 +1,30 @@
+appId: cz.opikula.okgram
+productName: OKgram
+copyright: OpiKula
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**
+  - resources/**
+  - package.json
+  - '!**/*.map'
+asarUnpack:
+  - resources/**
+win:
+  target: nsis
+  icon: build/icon-1024.png
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: OKgram-Setup-${version}.${ext}
+linux:
+  target: AppImage
+  icon: build/icon-1024.png
+  category: Graphics
+  artifactName: OKgram-${version}.${ext}
+mac:
+  target: dmg
+  icon: build/icon-1024.png
+  category: public.app-category.photography
+  artifactName: OKgram-${version}.${ext}

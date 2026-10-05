@@ -1,0 +1,7 @@
+node_modules/
+out/
+dist/
+dev-library/
+*.log
+*.tsbuildinfo
+tests/smoke/output/
