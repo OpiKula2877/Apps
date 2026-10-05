@@ -335,6 +335,105 @@ img { display: block; max-width: 100%; height: auto; }
 .note p { margin: 0; }
 .note p + p { margin-top: 8px; }
 
+/* ---- Feedback form, with the scribe: an OK guy who takes notes while you type, wears your mood and carries the
+   locked message away ---- */
+.feedback { padding-block: 120px; border-top: 1px solid var(--border); }
+.feedback h2 { font-size: clamp(44px, 6vw, 76px); line-height: 1; letter-spacing: -0.02em; margin: 0 0 20px; }
+.fb-body { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 64px; align-items: end; margin-top: 56px; }
+.fb-stage { position: relative; max-width: 760px; }
+.fb-card { position: relative; padding: 32px; border: 1px solid var(--border); border-radius: 12px; background: rgba(23, 13, 14, 0.85);
+  transition: transform 0.7s cubic-bezier(0.6, 0, 0.3, 1), opacity 0.7s, border-radius 0.7s, border-color 0.3s; }
+.fb-card:focus-within { border-color: #6A1A24; }
+.fb-fields { display: grid; gap: 10px; transition: opacity 0.3s, filter 0.3s; }
+.fb-label { padding: 0; font-size: 14px; font-weight: 700; color: var(--text); }
+.fb-group { margin: 14px 0 4px; padding: 0; border: 0; }
+.fb-group .fb-label { margin-bottom: 10px; }
+.fb-input { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--input); color: var(--text);
+  font: inherit; transition: border-color 0.2s, box-shadow 0.2s; }
+.fb-input::placeholder { color: #7D6668; }
+.fb-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.25); }
+.fb-input.bad { border-color: #FF6B7A; }
+.fb-text { resize: vertical; min-height: 150px; line-height: 1.55; }
+.fb-label[for="fb-msg"] { margin-top: 14px; }
+.fb-count { margin: -2px 0 0; color: var(--muted); font-size: 12px; text-align: right; }
+.fb-honey { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.fb-chips, .fb-moods { display: flex; flex-wrap: wrap; gap: 8px; }
+.fb-chip, .fb-mood { position: relative; cursor: pointer; }
+.fb-chip input, .fb-mood input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.fb-chip span { display: block; padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius); color: var(--muted); font-size: 14px; font-weight: 700;
+  transition: border-color 0.2s, color 0.2s, background-color 0.2s; }
+.fb-chip:hover span { color: var(--text); }
+.fb-chip input:checked + span { border-color: var(--accent); background: var(--bar); color: var(--text); }
+.fb-mood { display: grid; justify-items: center; gap: 4px; width: 84px; padding: 10px 6px 8px; border: 1px solid var(--border); border-radius: 10px; color: var(--muted);
+  font-size: 12px; font-weight: 700; transition: border-color 0.2s, color 0.2s, background-color 0.2s, transform 0.2s; }
+.fb-mood svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; transition: transform 0.3s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.fb-mood svg .eye { fill: currentColor; stroke: none; }
+.fb-mood:hover { color: var(--text); }
+.fb-mood:hover svg { transform: scale(1.12) rotate(-6deg); }
+.fb-mood:has(input:checked) { background: var(--bar); transform: translateY(-2px); }
+.fb-mood:has(input:checked) svg { transform: scale(1.2); }
+.fb-mood-super:has(input:checked) { color: #4CC77A; border-color: #4CC77A; }
+.fb-mood-good:has(input:checked) { color: #F2E6E6; border-color: #F2E6E6; }
+.fb-mood-meh:has(input:checked) { color: #D9A13B; border-color: #D9A13B; }
+.fb-mood-bad:has(input:checked) { color: #FF6B7A; border-color: #FF6B7A; }
+.fb-mood :focus-visible + svg, .fb-chip :focus-visible + span { outline: 2px solid var(--accent); outline-offset: 3px; }
+.fb-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 10px; }
+.fb-send svg { width: 18px; height: 18px; }
+.fb-status { margin: 0; font-size: 13px; color: var(--muted); }
+.fb-status.error { color: #FF6B7A; }
+/* While sending: the text turns into ciphertext, a padlock snaps shut, the card folds into a packet and flies to the scribe. */
+.fb-cipher { position: absolute; inset: 32px; overflow: hidden; color: var(--accent); font-size: 13px; line-height: 1.5; word-break: break-all; white-space: pre-wrap; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+.fb-lock { position: absolute; left: 50%; top: 50%; width: 72px; height: 84px; margin: -42px 0 0 -36px; fill: none; stroke: var(--text); stroke-width: 3; stroke-linecap: round; opacity: 0; transform: scale(0.6); pointer-events: none; }
+.fb-lock rect { fill: var(--accent); stroke: var(--accent); }
+.fb-lock circle, .fb-lock rect + circle + path { stroke: #fff; }
+.fb-shackle { transform: translateY(-9px); transform-box: fill-box; }
+.is-sending .fb-fields { opacity: 0.08; filter: blur(1px); }
+.is-sending .fb-cipher { opacity: 1; }
+.is-sending .fb-lock { animation: lock-in 0.35s cubic-bezier(0.3, 1.6, 0.5, 1) 0.25s forwards; }
+.is-sending .fb-shackle { animation: lock-shut 0.2s ease-in 0.7s forwards; }
+.is-flying .fb-card { transform: translate(var(--fly-x, 300px), var(--fly-y, 80px)) scale(0.06); border-radius: 50%; opacity: 0; border-color: var(--accent); }
+@keyframes lock-in { to { opacity: 1; transform: scale(1); } }
+@keyframes lock-shut { to { transform: translateY(0); } }
+.fb-card.shake { animation: shake 0.4s; }
+@keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+.fb-done { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 32px; text-align: center;
+  border: 1px solid var(--success); border-radius: 12px; background: rgba(23, 13, 14, 0.92); animation: done-in 0.5s cubic-bezier(0.3, 1.5, 0.5, 1); }
+.fb-done[hidden] { display: none; }
+.fb-done > svg { width: 56px; height: 56px; padding: 12px; border-radius: 50%; background: var(--success); color: #0E0A0A; }
+.fb-done h3 { margin: 6px 0 0; font-size: 26px; }
+.fb-done p { margin: 0; max-width: 40ch; color: var(--muted); }
+.fb-again { margin-top: 10px; padding: 8px 16px; font: inherit; font-weight: 700; color: var(--text); background: none; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; }
+.fb-again:hover { border-color: var(--accent); }
+@keyframes done-in { from { opacity: 0; transform: scale(0.9); } }
+/* Characters you type fly over to the scribe. */
+.fb-bit { position: fixed; z-index: 50; color: var(--accent); font-weight: 700; font-size: 14px; pointer-events: none; animation: bit-fly 0.7s cubic-bezier(0.5, 0, 0.6, 1) forwards; }
+@keyframes bit-fly { 0% { opacity: 0; transform: translate(0, 0) scale(0.6); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.2); } }
+
+/* The scribe. Idle: breathes and looks around. Typing: scribbles fast. Mood: takes your mood's colour and mouth.
+   Sending: jumps to catch the packet. Sent: waves. */
+.fb-guy { position: relative; width: 200px; justify-self: center; }
+.fb-guy .okguy { width: 100%; height: auto; }
+.fb-say { top: -12px; left: -40px; opacity: 1; animation: none; transform-origin: 0 100%; transition: transform 0.25s cubic-bezier(0.3, 1.6, 0.5, 1), opacity 0.25s; }
+.fb-say:empty { opacity: 0; transform: scale(0.6); }
+.fb-say.pop { animation: say-pop 0.35s cubic-bezier(0.3, 1.6, 0.5, 1); }
+@keyframes say-pop { from { transform: scale(0.6); } }
+.guy-post .okguy-body { animation: post-idle 5s ease-in-out infinite; transition: color 0.4s; }
+.guy-post .okguy-mouth { transition: d 0.3s; }
+@keyframes post-idle { 0%, 100% { transform: none; } 30% { transform: rotate(-4deg); } 60% { transform: rotate(3deg); } }
+.feedback.is-typing .guy-post .okguy-body { animation: post-lean 0.6s ease-in-out infinite alternate; }
+.feedback.is-typing .guy-post .okguy-arm-r { animation: scribble 0.16s ease-in-out infinite alternate; }
+.feedback.is-typing .guy-post .okguy-arm-l { transform: rotate(20deg); transition: transform 0.2s; }
+@keyframes post-lean { from { transform: rotate(-6deg); } to { transform: rotate(-3deg) translateY(-2px); } }
+@keyframes scribble { from { transform: rotate(10deg); } to { transform: rotate(30deg); } }
+.feedback[data-mood="super"] .guy-post .okguy-body { color: #4CC77A; }
+.feedback[data-mood="meh"] .guy-post .okguy-body { color: #D9A13B; }
+.feedback[data-mood="bad"] .guy-post .okguy-body { color: #FF6B7A; }
+.feedback.is-sending .guy-post .okguy-body { animation: hop 0.45s ease-in-out infinite; }
+.feedback.is-sending .guy-post .okguy-arm-r { animation: arm-up-r 0.3s ease-out forwards; }
+.feedback.is-sending .guy-post .okguy-arm-l { animation: arm-up-l 0.3s ease-out forwards; }
+.feedback.is-sent .guy-post .okguy-arm-r { animation: greet-arm-r 3s ease-in-out 1; }
+.feedback.is-sent .guy-post .okguy-body { animation: greet-body 3s ease-in-out 1; animation-delay: -0.7s; }
+
 /* Background: a faint grid of dots on a canvas behind everything. */
 .bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
 
@@ -348,6 +447,9 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
 [hidden] { display: none !important; }
 
 @media (max-width: 860px) {
+  .feedback { padding-block: 80px; }
+  .fb-body { grid-template-columns: minmax(0, 1fr); gap: 24px; margin-top: 40px; }
+  .fb-guy { order: -1; width: 120px; justify-self: end; margin-bottom: -32px; }
   .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; padding-block: 40px 72px; gap: 8px; }
   .hero-guy { order: -1; justify-self: end; width: 120px; }
   .app { padding-block: 80px; }
@@ -358,6 +460,10 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
   .topbar nav { gap: 16px; }
 }
 @media (max-width: 520px) {
+  .fb-card { padding: 20px; }
+  .fb-cipher { inset: 20px; }
+  .fb-mood { width: calc(50% - 4px); }
+  .fb-send { width: 100%; justify-content: center; }
   .wrap { padding-inline: 16px; }
   body { font-size: 14px; }
   .brand span { display: none; }
@@ -378,7 +484,8 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
   .swap, .features .feat.on::before, .scene-cur, .okguy, .okguy *, .js .hero-text > *, .js .hero-guy { animation: none !important; }
   .say { animation: none; opacity: 1; }
   .js .reveal { opacity: 1; transform: none; transition: none; }
-  .pick, .pick .arr, .install-body, .install-grid, .chev, .guy-peek { transition: none; }
+  .pick, .pick .arr, .install-body, .install-grid, .chev, .guy-peek, .fb-card, .fb-mood, .fb-mood svg { transition: none; }
+  .fb-bit { display: none; }
 }
 </style>
 <script>document.documentElement.classList.add('js')</script>
@@ -798,6 +905,67 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
       </div>
     </div>
   </section>
+
+  <!-- Feedback: sent with FormSubmit to Gmail (the first message asks for a one-time activation by e-mail). -->
+  <section class="feedback wrap" id="feedback">
+    <div class="fb-head reveal">
+      <p class="eyebrow" data-i18n="t103"><b>04</b> / zpětná vazba</p>
+      <h2 data-i18n="t104">Napište mi</h2>
+      <p class="lede" data-i18n="t105">Našli jste chybu, něco vám v aplikaci chybí, nebo se vám líbí? Napište. Každou zprávu si přečtu.</p>
+    </div>
+    <div class="fb-body">
+      <div class="fb-stage reveal">
+        <form class="fb-card" novalidate>
+          <div class="fb-fields">
+            <label class="fb-label" for="fb-email" data-i18n="t106">Váš e-mail</label>
+            <input class="fb-input" id="fb-email" name="email" type="email" autocomplete="email" maxlength="200" required placeholder="vy@example.cz" data-i18n-ph="you@example.com">
+
+            <fieldset class="fb-group">
+              <legend class="fb-label" data-i18n="t107">Které aplikace se to týká</legend>
+              <div class="fb-chips">
+                <label class="fb-chip"><input type="radio" name="app" value="OKfetch" checked><span>OKfetch</span></label>
+                <label class="fb-chip"><input type="radio" name="app" value="OKpass"><span>OKpass</span></label>
+                <label class="fb-chip"><input type="radio" name="app" value="OKgram"><span>OKgram</span></label>
+                <label class="fb-chip"><input type="radio" name="app" value="Web"><span data-i18n="t108">Stránka</span></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="fb-group">
+              <legend class="fb-label" data-i18n="t109">Jak se vám líbí</legend>
+              <div class="fb-moods">
+                <label class="fb-mood fb-mood-super"><input type="radio" name="mood" value="super"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle class="eye" cx="9" cy="10" r="1.3"/><circle class="eye" cx="15" cy="10" r="1.3"/><path d="M7.5 14q4.5 5 9 0"/></svg><span data-i18n="t110">Super</span></label>
+                <label class="fb-mood fb-mood-good"><input type="radio" name="mood" value="good"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle class="eye" cx="9" cy="10" r="1.3"/><circle class="eye" cx="15" cy="10" r="1.3"/><path d="M8.5 14.5q3.5 2.5 7 0"/></svg><span data-i18n="t111">Dobré</span></label>
+                <label class="fb-mood fb-mood-meh"><input type="radio" name="mood" value="meh"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle class="eye" cx="9" cy="10" r="1.3"/><circle class="eye" cx="15" cy="10" r="1.3"/><path d="M8.5 15.5h7"/></svg><span data-i18n="t112">Nic moc</span></label>
+                <label class="fb-mood fb-mood-bad"><input type="radio" name="mood" value="bad"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle class="eye" cx="9" cy="10" r="1.3"/><circle class="eye" cx="15" cy="10" r="1.3"/><path d="M8.5 17q3.5-3 7 0"/></svg><span data-i18n="t113">Špatné</span></label>
+              </div>
+            </fieldset>
+
+            <label class="fb-label" for="fb-msg" data-i18n="t114">Zpráva</label>
+            <textarea class="fb-input fb-text" id="fb-msg" name="message" rows="6" maxlength="3000" required placeholder="Chyba, nápad, co aplikaci chybí, jaký z ní máte pocit…" data-i18n-ph="A bug, an idea, what the app is missing, how it feels…"></textarea>
+            <p class="fb-count" aria-hidden="true">0 / 3000</p>
+            <input class="fb-honey" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+            <div class="fb-actions">
+              <button class="download fb-send" type="submit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg><span data-i18n="t115">Odeslat</span></button>
+              <p class="fb-status" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+          <div class="fb-cipher" aria-hidden="true"></div>
+          <svg class="fb-lock" viewBox="0 0 48 56" aria-hidden="true"><path class="fb-shackle" d="M12 26V16a12 12 0 0 1 24 0v10"/><rect x="6" y="24" width="36" height="28" rx="5"/><circle cx="24" cy="36" r="4"/><path d="M24 39v6"/></svg>
+        </form>
+        <div class="fb-done" tabindex="-1" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+          <h3 data-i18n="t116">Odesláno. Díky!</h3>
+          <p data-i18n="t117">Zpráva je zamčená a na cestě. Když bude potřeba, odpovím vám na e-mail.</p>
+          <button class="fb-again" type="button" data-i18n="t118">Napsat další</button>
+        </div>
+      </div>
+      <div class="fb-guy reveal" style="--i: 1" aria-hidden="true">
+        <span class="say fb-say"></span>
+        <svg class="okguy guy-post" viewBox="0 0 100 120" aria-hidden="true" data-tap><g class="okguy-body"><g class="okguy-legs"><path class="okguy-leg okguy-leg-l" d="M50 58 28 98"/><path class="okguy-leg okguy-leg-r" d="M50 58 72 98"/></g><path class="okguy-torso" d="M36 56H64"/><path class="okguy-arm okguy-arm-l" d="M36 56H18"/><path class="okguy-arm okguy-arm-r" d="M64 56H82"/><circle class="okguy-head" cx="50" cy="28" r="20"/><g class="okguy-face"><ellipse cx="44" cy="25" rx="2.4" ry="3.2"/><ellipse cx="56" cy="25" rx="2.4" ry="3.2"/><path class="okguy-mouth" d="M44 33q6 5 12 0"/></g></g></svg>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer>
@@ -916,6 +1084,22 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
     "t99": "Changes from several computers are merged. Offline it shows the last thumbnails and sends the changes later.",
     "t100": "For Windows, Linux and macOS.",
     "t101": "For Google Drive a Google account is enough, nothing else to set up",
+    "t103": "<b>04</b> / feedback",
+    "t104": "Write to me",
+    "t105": "Found a bug, missing something in an app, or do you like it? Write. I read every message.",
+    "t106": "Your e-mail",
+    "t107": "Which app is it about",
+    "t108": "Website",
+    "t109": "How do you like it",
+    "t110": "Great",
+    "t111": "Good",
+    "t112": "So-so",
+    "t113": "Bad",
+    "t114": "Message",
+    "t115": "Send",
+    "t116": "Sent. Thank you!",
+    "t117": "The message is locked and on its way. If needed, I will reply to your e-mail.",
+    "t118": "Write another",
     "t102": "OKgram only sees files it uploaded to Drive itself. Photos put into the folder through the Google Drive website do not show up, upload them through OKgram."
   }
   const MSG = {
@@ -936,6 +1120,7 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
   for (const el of document.querySelectorAll('[data-i18n]')) ORIG.set(el, el.innerHTML)
   for (const el of document.querySelectorAll('[data-i18n-alt]')) ORIG.set(el, el.alt)
   for (const el of document.querySelectorAll('[data-i18n-aria]')) ORIG.set(el, el.getAttribute('aria-label'))
+  const PLACEHOLDER = new Map([...document.querySelectorAll('[data-i18n-ph]')].map((el) => [el, el.placeholder]))
   let lang = 'cs'
   const langHooks = []
   const msg = (key) => MSG[lang][key]
@@ -949,6 +1134,7 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
     for (const el of document.querySelectorAll('[data-i18n-alt]')) el.alt = next === 'en' ? el.dataset.i18nAlt : ORIG.get(el)
     for (const el of document.querySelectorAll('[data-i18n-aria]')) el.setAttribute('aria-label', next === 'en' ? el.dataset.i18nAria : ORIG.get(el))
     for (const b of document.querySelectorAll('.lang button')) b.setAttribute('aria-pressed', String(b.dataset.lang === next))
+    for (const [el, cs] of PLACEHOLDER) el.placeholder = next === 'en' ? el.dataset.i18nPh : cs
     for (const hook of langHooks) hook()
   }
   for (const b of document.querySelectorAll('.lang button')) {
@@ -2004,6 +2190,174 @@ footer .wrap { position: relative; display: flex; flex-wrap: wrap; align-items: 
     link.addEventListener('click', () => {
       const box = link.closest('[data-app]').querySelector('.install')
       if (box) setInstall(box, true)
+    })
+  }
+
+  // ---- Feedback form ----
+  // Sent with FormSubmit (no server of our own) to the main address, with a copy to the second one.
+  // The very first message makes FormSubmit e-mail a one-time activation link to the main address.
+  const FEEDBACK_TO = 'pelcsamuel464@gmail.com'
+  const FEEDBACK_CC = 'samuelpelc464@gmail.com'
+  const fbSection = document.querySelector('#feedback')
+  if (fbSection) {
+    const form = fbSection.querySelector('.fb-card')
+    const email = form.querySelector('#fb-email')
+    const text = form.querySelector('#fb-msg')
+    const count = form.querySelector('.fb-count')
+    const status = form.querySelector('.fb-status')
+    const cipher = form.querySelector('.fb-cipher')
+    const done = fbSection.querySelector('.fb-done')
+    const say = fbSection.querySelector('.fb-say')
+    const guy = fbSection.querySelector('.guy-post')
+    const mouth = guy.querySelector('.okguy-mouth')
+    const SAY = {
+      idle: ['Sem s tím!', 'Tell me!'], typing: ['Píšu si…', 'Taking notes…'], super: ['Jé, díky!', 'Yay, thanks!'], good: ['Fajn!', 'Nice!'],
+      meh: ['Hmm, co zlepšit?', 'Hmm, what to improve?'], bad: ['Au. Co opravit?', 'Ouch. What to fix?'], sending: ['Zamykám a nesu!', 'Locking it up!'],
+      sent: ['Doručeno!', 'Delivered!'], invalid: ['Ještě něco chybí', 'Something is missing'], error: ['Nepovedlo se', 'That failed']
+    }
+    const MSG_FB = {
+      email: ['Napište prosím platný e-mail.', 'Please enter a valid e-mail.'],
+      text: ['Napište prosím aspoň pár slov.', 'Please write at least a few words.'],
+      sending: ['Odesílám…', 'Sending…'],
+      error: ['Zprávu se nepodařilo odeslat. Zkuste to prosím za chvíli znovu.', 'The message could not be sent. Please try again in a moment.']
+    }
+    const MOUTH = { super: 'M42 32q8 8 16 0', good: 'M44 33q6 5 12 0', meh: 'M44 35h12', bad: 'M44 37q6-5 12 0', none: 'M44 33q6 5 12 0' }
+    const t = (pair) => pair[lang === 'en' ? 1 : 0]
+    let sayKey = 'idle'
+    const setSay = (key) => {
+      sayKey = key
+      say.textContent = t(SAY[key])
+      say.classList.remove('pop')
+      void say.offsetWidth
+      say.classList.add('pop')
+    }
+    setSay('idle')
+    langHooks.push(() => { say.textContent = t(SAY[sayKey]) })
+    const mood = () => (form.querySelector('input[name="mood"]:checked') || {}).value || ''
+
+    // Typing: the scribe scribbles and the typed characters fly over to him.
+    let typingTimer = 0, lastBit = 0
+    const typing = () => {
+      fbSection.classList.add('is-typing')
+      if (sayKey !== 'typing') setSay('typing')
+      clearTimeout(typingTimer)
+      typingTimer = setTimeout(() => { fbSection.classList.remove('is-typing'); setSay(mood() || 'idle') }, 900)
+    }
+    const flyBit = (from, ch) => {
+      const now = performance.now()
+      if (reduceMotion.matches || now - lastBit < 60 || !ch.trim()) return
+      lastBit = now
+      const a = from.getBoundingClientRect(), b = guy.getBoundingClientRect()
+      if (!b.width) return
+      const bit = document.createElement('span')
+      bit.className = 'fb-bit'
+      bit.setAttribute('aria-hidden', 'true')
+      bit.textContent = hash(now | 0, ch.charCodeAt(0), 3) > 0.5 ? ch : CIPHER[Math.floor(hash(now | 0, 1, 4) * 16)]
+      const x = a.right - 30 - Math.random() * 60, y = a.bottom - 24 - Math.random() * 20
+      bit.style.left = x + 'px'
+      bit.style.top = y + 'px'
+      bit.style.setProperty('--dx', (b.left + b.width * 0.5 - x) + 'px')
+      bit.style.setProperty('--dy', (b.top + b.height * 0.3 - y) + 'px')
+      document.body.append(bit)
+      bit.addEventListener('animationend', () => bit.remove())
+    }
+    for (const field of [email, text]) {
+      field.addEventListener('input', (e) => {
+        field.classList.remove('bad')
+        typing()
+        if (e.data) flyBit(field, e.data.slice(-1))
+        if (field === text) count.textContent = `${text.value.length} / 3000`
+      })
+    }
+    form.addEventListener('change', (e) => {
+      if (e.target.name !== 'mood') return
+      fbSection.dataset.mood = e.target.value
+      mouth.setAttribute('d', MOUTH[e.target.value])
+      setSay(e.target.value)
+    })
+
+    // Sending: check, scramble the text into ciphertext, lock, fold into a packet, fly to the scribe, then thank.
+    const scramble = (source, ms) => new Promise((resolve) => {
+      const chars = [...source.slice(0, 600)], t0 = performance.now()
+      const tick = () => {
+        const p = Math.min(1, (performance.now() - t0) / ms)
+        cipher.textContent = chars.map((ch, i) => (ch === '\n' || ch === ' ' || i / chars.length > p ? ch : CIPHER[Math.floor(hash(i, 2, Math.floor(performance.now() / 50)) * CIPHER.length)])).join('')
+        if (p < 1) setTimeout(tick, 40)
+        else resolve()
+      }
+      tick()
+    })
+    const wait = (ms) => new Promise((r) => setTimeout(r, reduceMotion.matches ? 0 : ms))
+    const fail = (message) => {
+      status.textContent = message
+      status.classList.add('error')
+      form.classList.remove('shake')
+      void form.offsetWidth
+      form.classList.add('shake')
+      setSay('invalid')
+    }
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      if (fbSection.classList.contains('is-sending')) return
+      status.classList.remove('error')
+      status.textContent = ''
+      if (!email.checkValidity() || !email.value.trim()) { email.classList.add('bad'); email.focus(); return fail(t(MSG_FB.email)) }
+      if (text.value.trim().length < 3) { text.classList.add('bad'); text.focus(); return fail(t(MSG_FB.text)) }
+      if (form.querySelector('.fb-honey').value) return
+      const data = new FormData(form)
+      const app = data.get('app') || 'Web', feel = mood()
+      const payload = {
+        email: email.value.trim(),
+        app,
+        mood: feel || '-',
+        message: text.value.trim(),
+        language: lang,
+        _subject: `OK Apps · ${app} · ${feel || 'feedback'}`,
+        _replyto: email.value.trim(),
+        _cc: FEEDBACK_CC,
+        _template: 'table',
+        _captcha: 'false'
+      }
+      fbSection.classList.add('is-sending')
+      setSay('sending')
+      status.textContent = t(MSG_FB.sending)
+      const g = guy.getBoundingClientRect(), f = form.getBoundingClientRect()
+      form.style.setProperty('--fly-x', (g.left + g.width / 2 - (f.left + f.width / 2)) + 'px')
+      form.style.setProperty('--fly-y', (g.top + g.height * 0.45 - (f.top + f.height / 2)) + 'px')
+      const send = fetch(`https://formsubmit.co/ajax/${FEEDBACK_TO}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload)
+      }).then((r) => r.json()).then((r) => String(r.success) === 'true').catch(() => false)
+      await scramble(payload.message, reduceMotion.matches ? 0 : 700)
+      await wait(350)
+      fbSection.classList.add('is-flying')
+      const [ok] = await Promise.all([send, wait(800)])
+      fbSection.classList.remove('is-sending')
+      cipher.textContent = ''
+      if (ok) {
+        form.reset()
+        count.textContent = '0 / 3000'
+        mouth.setAttribute('d', MOUTH.super)
+        delete fbSection.dataset.mood
+        status.textContent = ''
+        done.hidden = false
+        done.focus()
+        fbSection.classList.add('is-sent')
+        setSay('sent')
+      } else {
+        fbSection.classList.remove('is-flying')
+        await wait(400)
+        fail(t(MSG_FB.error))
+        setSay('error')
+      }
+    })
+    fbSection.querySelector('.fb-again').addEventListener('click', () => {
+      done.hidden = true
+      fbSection.classList.remove('is-flying', 'is-sent')
+      mouth.setAttribute('d', MOUTH.none)
+      setSay('idle')
+      email.focus()
     })
   }
 
